@@ -387,6 +387,16 @@ thread_get_recent_cpu (void)
   return 0;
 }
 
+bool sleep_queue_ordering(const struct list_elem *prev, const struct list_elem *cur, void *aux UNUSED)
+{
+struct thread * a= list_entry(prev, struct thread, elem);
+struct thread * b =list_entry(cur, struct thread, elem);
+
+if(a->wakeup_tick<b->wakeup_tick) return true;
+else return false;
+
+}
+
 //alarm system call
 void thread_sleep(int64_t ticks)
 {
@@ -394,50 +404,25 @@ void thread_sleep(int64_t ticks)
   enum intr_level old_level;
 
   old_level=intr_disable();
-  ASSERT(t!=idle_thread);
   t->wakeup_tick=ticks;
-  update_min_wakeup_tick(ticks);
-  list_push_back(&sleep_list,&t->elem);
+  if(t!=idle_thread) list_insert_ordered(&sleep_list,&t->elem, sleep_queue_ordering,NULL); 
   thread_block();
   intr_set_level(old_level);
 }
 
+
 void thread_awake(int64_t ticks)
 {
   struct list_elem *e;
-  for(e=list_begin(&sleep_list);e!=list_end(&sleep_list);e=list_next(e))
+  for(e=list_begin(&sleep_list);e!=list_end(&sleep_list);)
   {
     struct thread *t= list_entry(e, struct thread, elem);
     if(t->wakeup_tick<=ticks)
-    {
-      t->wakeup_tick=0;
-      list_remove(e);
-      thread_unblock(t);
-
-    }
-    else if(t->wakeup_tick>ticks)
-    {
-      update_min_wakeup_tick(ticks);
-    }
+    {t->wakeup_tick=0;
+    e=list_remove(e);
+    thread_unblock(t);}
+    else break;
   }
-
-}
-
-void update_min_wakeup_tick(int64_t ticks){
-int64_t x=INT64_MAX;
-//현재 ticks보다 크거나 같은 것 중 가장 작은 걸 찾기
-struct list_elem *e;
-for(e=list_begin(&sleep_list);e!=list_end(&sleep_list);e=list_next(e))
-{
-  struct thread *t= list_entry(e, struct thread, elem);
-  x=x<t->wakeup_tick?x:t->wakeup_tick;
-}
-minof_wakeup_tick=x;
-}
-
-int64_t get_min_wakeup_tick(void){
-return minof_wakeup_tick;
-
 
 }
 
