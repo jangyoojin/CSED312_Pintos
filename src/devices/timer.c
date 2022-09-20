@@ -93,7 +93,7 @@ timer_sleep (int64_t ticks)
 
   ASSERT (intr_get_level () == INTR_ON);
   /* function call of inserting new thread to the sleep queue */
-  thread_sleep(start+ticks);
+  thread_sleep(ticks+start);
 }
 
 /* Sleeps for approximately MS milliseconds.  Interrupts must be
@@ -166,8 +166,6 @@ timer_print_stats (void)
   printf ("Timer: %"PRId64" ticks\n", timer_ticks ());
 }
 
-
-
 /* Timer interrupt handler. */
 static void
 timer_interrupt (struct intr_frame *args UNUSED)
