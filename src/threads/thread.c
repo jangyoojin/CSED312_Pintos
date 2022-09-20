@@ -212,6 +212,7 @@ thread_create (const char *name, int priority,
   /* Add to run queue. */
   thread_unblock (t);
 
+  if (thread_get_priority() < priority) thread_yield ();
   return tid;
 }
 
@@ -239,6 +240,17 @@ thread_block (void)
    be important: if the caller had disabled interrupts itself,
    it may expect that it can atomically unblock a thread and
    update other data. */
+
+
+bool cmp_priority (const struct list_elem *a, const struct list_elem *b, void* aux UNUSED)
+{
+  struct thread *a_ = list_entry(a, struct thread, elem);
+  struct thread *b_ = list_entry(b, struct thread, elem);
+  
+  return a_->priority > b_->priority? true : false;
+}
+
+
 void
 thread_unblock (struct thread *t) 
 {
@@ -248,7 +260,7 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
-  list_push_back (&ready_list, &t->elem);
+  list_insert_ordered (&ready_list, &t->elem, cmp_priority, NULL);
   t->status = THREAD_READY;
   intr_set_level (old_level);
 }
@@ -319,7 +331,7 @@ thread_yield (void)
 
   old_level = intr_disable ();
   if (cur != idle_thread) 
-    list_push_back (&ready_list, &cur->elem);
+    list_insert_ordered (&ready_list, &cur->elem, cmp_priority, NULL);
   cur->status = THREAD_READY;
   schedule ();
   intr_set_level (old_level);
@@ -347,6 +359,7 @@ void
 thread_set_priority (int new_priority) 
 {
   thread_current ()->priority = new_priority;
+  if (thread_get_priority () < list_entry(list_begin(&ready_list), struct thread, elem)->priority) thread_yield ();
 }
 
 /* Returns the current thread's priority. */
@@ -354,6 +367,14 @@ int
 thread_get_priority (void) 
 {
   return thread_current ()->priority;
+}
+
+void test_max_priority (void)
+{
+  if (list_begin(&ready_list) != list_end(&ready_list))
+  {
+    if (thread_get_priority () < list_entry(list_begin(&ready_list), struct thread, elem) -> priority) schedule ();
+  }
 }
 
 /* Sets the current thread's nice value to NICE. */
