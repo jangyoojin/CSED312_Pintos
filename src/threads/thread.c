@@ -24,6 +24,15 @@
    that are ready to run but not actually running. */
 static struct list ready_list;
 
+/*implementation
+sleep queue data structure,
+next_tick_to_awake global variable
+*/
+static struct list sleep_list;
+int64_t minof_wakeup_tick;
+
+
+
 /* List of all processes.  Processes are added to this list
    when they are first scheduled and removed when they exit. */
 static struct list all_list;
@@ -92,6 +101,8 @@ thread_init (void)
   lock_init (&tid_lock);
   list_init (&ready_list);
   list_init (&all_list);
+  //alarm system call
+  list_init(&sleep_list);
 
   /* Set up a thread structure for the running thread. */
   initial_thread = running_thread ();
@@ -375,6 +386,59 @@ thread_get_recent_cpu (void)
   /* Not yet implemented. */
   return 0;
 }
+
+//alarm system call
+void thread_sleep(int64_t ticks)
+{
+  struct thread *t =thread_current();
+  enum intr_level old_level;
+
+  old_level=intr_disable();
+  if(t!=idle_thread)
+  {
+    t->wakeup_tick=ticks;
+    update_min_wakeup_tick(ticks);
+    list_push_back(&sleep_list,&t->elem);
+    thread_block();
+  }
+  intr_set_level(old_level);
+}
+
+void thread_awake(int64_t ticks)
+{
+  struct list_elem *e;
+  for(e=list_begin(&sleep_list);e!=list_end(&sleep_list);e=list_next(e))
+  {
+    struct thread *t= list_entry(e, struct thread, allelem);
+    if(t->wakeup_tick<=ticks)
+    {
+      t->wakeup_tick=0;
+      list_remove(&t->allelem);
+      thread_unblock(t);
+
+    }
+    else if(t->wakeup_tick>ticks)
+    {
+      update_min_wakeup_tick(t->wakeup_tick);
+    }
+  }
+
+}
+
+void update_min_wakeup_tick(int64_t ticks){
+
+minof_wakeup_tick=minof_wakeup_tick<ticks? minof_wakeup_tick:ticks;
+
+}
+
+int64_t get_min_wakeup_tick(void){
+
+return minof_wakeup_tick;
+
+
+}
+
+
 
 /* Idle thread.  Executes when no other thread is ready to run.
 
@@ -466,6 +530,7 @@ init_thread (struct thread *t, const char *name, int priority)
 
   old_level = intr_disable ();
   list_push_back (&all_list, &t->allelem);
+
   intr_set_level (old_level);
 }
 

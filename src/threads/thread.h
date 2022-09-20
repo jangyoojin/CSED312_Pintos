@@ -90,6 +90,8 @@ struct thread
     int priority;                       /* Priority. */
     struct list_elem allelem;           /* List element for all threads list. */
 
+   int64_t wakeup_tick; // data type right?
+
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
 
@@ -137,5 +139,13 @@ int thread_get_nice (void);
 void thread_set_nice (int);
 int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
+
+
+//alarm system call
+void thread_sleep(int64_t ticks);
+void thread_awake(int64_t ticks);
+void update_min_wakeup_tick(int64_t ticks);
+int64_t get_min_wakeup_tick(void);
+
 
 #endif /* threads/thread.h */
