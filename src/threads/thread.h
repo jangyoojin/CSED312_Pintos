@@ -134,6 +134,9 @@ void thread_foreach (thread_action_func *, void *);
 
 int thread_get_priority (void);
 void thread_set_priority (int);
+void test_max_priority_betweenReadyandCur(void);
+bool compare_thread_priority (const struct list_elem *a, const struct list_elem *b, void* aux UNUSED);
+bool compare_sleeplist_wakeup_tick(const struct list_elem *prev, const struct list_elem *cur, void *aux UNUSED);
 
 int thread_get_nice (void);
 void thread_set_nice (int);
