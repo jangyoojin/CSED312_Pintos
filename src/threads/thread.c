@@ -357,8 +357,10 @@ thread_foreach (thread_action_func *func, void *aux)
 void
 thread_set_priority (int new_priority) 
 {
-  thread_current ()->priority = new_priority;
-  if (thread_get_priority () < list_entry(list_begin(&ready_list), struct thread, elem)->priority) thread_yield ();
+  thread_current ()->init_priority = new_priority;
+  refresh_priority();
+  test_max_priority_betweenReadyandCur();
+  //if (thread_get_priority () < list_entry(list_begin(&ready_list), struct thread, elem)->priority) thread_yield ();
 }
 
 /* Returns the current thread's priority. */
@@ -446,6 +448,50 @@ void thread_awake(int64_t ticks)
 
 }
 
+void donate_priority(void)
+{
+  struct thread * t= thread_current();
+  int depth;
+  for(depth=0; depth<8;t=t->lock_waiting_for->holder)// see the picture of nested donation
+  {
+    if(t->lock_waiting_for==NULL) return;
+    int temp=t->lock_waiting_for->holder->priority;
+    t->lock_waiting_for->holder->priority=t->priority>temp?t->priority:temp;
+  
+  }
+  //nested donations
+}
+
+void remove_with_lock(struct lock *lock)
+{
+  struct thread * t =thread_current();
+  struct list * donators=&t->donations;
+  struct list_elem * e;
+  for(e=list_begin(donators);e!=list_end(donators);)
+  {
+    struct thread *temp=list_entry(e, struct thread, donation_elem);
+    if(temp->lock_waiting_for==lock){
+      e=list_remove(e);
+    }
+    else e=list_next(e);
+  }
+
+}
+
+void refresh_priority(void)
+{
+  struct thread * t=thread_current();
+  t->priority=t->init_priority;
+  struct list * donators= &t->donations;
+  struct list_elem *e;
+  if(list_empty(donators)) return;
+  for(e=list_begin(donators);e!=list_end(donators);e=list_next(e))
+  {
+    struct thread * temp=list_entry(e,struct thread, donation_elem);
+    t->priority=temp->priority>t->priority? temp->priority: t->priority;
+  }
+  
+}
 
 
 /* Idle thread.  Executes when no other thread is ready to run.
@@ -535,6 +581,14 @@ init_thread (struct thread *t, const char *name, int priority)
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
   t->magic = THREAD_MAGIC;
+
+
+//for priority donation
+  t->init_priority=priority;
+  t->lock_waiting_for=NULL;
+  list_init(&t->donations);
+
+
 
   old_level = intr_disable ();
   list_push_back (&all_list, &t->allelem);

@@ -93,7 +93,13 @@ struct thread
    int64_t wakeup_tick; // data type right?
 
     /* Shared between thread.c and synch.c. */
-    struct list_elem elem;              /* List element. */
+    struct list_elem elem;             /* List element. */
+
+    /*priority donation */
+    int init_priority;
+    struct lock *lock_waiting_for;
+    struct list donations;
+    struct list_elem donation_elem;
 
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
@@ -150,5 +156,9 @@ void thread_awake(int64_t ticks);
 void update_min_wakeup_tick(int64_t ticks);
 int64_t get_min_wakeup_tick(void);
 
+//priority donation
+void donate_priority(void);
+void remove_with_lock(struct lock *lock);
+void refresh_priority(void);
 
 #endif /* threads/thread.h */

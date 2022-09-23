@@ -193,14 +193,23 @@ lock_init (struct lock *lock)
    interrupt handler.  This function may be called with
    interrupts disabled, but interrupts will be turned back on if
    we need to sleep. */
+
+  
 void
 lock_acquire (struct lock *lock)
 {
   ASSERT (lock != NULL);
   ASSERT (!intr_context ());
   ASSERT (!lock_held_by_current_thread (lock));
-
+  if(lock->holder!=NULL)
+  {
+    struct thread *t=thread_current();
+    t->lock_waiting_for=lock;
+    list_push_back(&lock->holder->donations, &t->donation_elem);
+    donate_priority();
+  }
   sema_down (&lock->semaphore);
+  thread_current()->lock_waiting_for=NULL;
   lock->holder = thread_current ();
 }
 
@@ -234,8 +243,10 @@ lock_release (struct lock *lock)
 {
   ASSERT (lock != NULL);
   ASSERT (lock_held_by_current_thread (lock));
-
   lock->holder = NULL;
+
+  remove_with_lock(lock);
+  refresh_priority();
   sema_up (&lock->semaphore);
 }
 
