@@ -202,11 +202,13 @@ lock_acquire (struct lock *lock)
   ASSERT (!intr_context ());
   ASSERT (!lock_held_by_current_thread (lock));
 
-  if (lock->holder != NULL) {
-    thread_current()->wait_this_lock = lock;
-    list_insert_ordered(&lock->holder->donations,&thread_current()->donation_elem, compare_thread_priority,NULL);
-    donate_priority();
-  }
+  if (!thread_mlfqs){
+    if (lock->holder != NULL) {
+      thread_current()->wait_this_lock = lock;
+      list_insert_ordered(&lock->holder->donations,&thread_current()->donation_elem, compare_thread_priority,NULL);
+      donate_priority();
+    }
+  } 
 
   sema_down (&lock->semaphore);
   thread_current()->wait_this_lock=NULL;
@@ -244,9 +246,10 @@ lock_release (struct lock *lock)
   ASSERT (lock != NULL);
   ASSERT (lock_held_by_current_thread (lock));
   lock->holder = NULL;
-
-  remove_with_lock(lock);
-  refresh_priority();
+  if (!thread_mlfqs) {
+    remove_with_lock(lock);
+    refresh_priority();
+  }
   sema_up (&lock->semaphore);
 }
 

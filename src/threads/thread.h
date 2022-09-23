@@ -98,6 +98,10 @@ struct thread
    struct list donations;
    struct list_elem donation_elem;
 
+   /* For Advanced Scheduler*/
+   int nice;
+   int recent_cpu;
+
    /* Shared between thread.c and synch.c. */
    struct list_elem elem;              /* List element. */
 
@@ -160,5 +164,13 @@ void thread_sleep(int64_t ticks);
 void thread_awake(int64_t ticks);
 void update_min_wakeup_tick(int64_t ticks);
 int64_t get_min_wakeup_tick(void);
+
+// Advanced Scheduler
+void MLFQS_priority (struct thread *t);
+void MLFQS_recent_cpu (struct thread *t);
+void MLFQS_load_avg (void);
+void MLFQS_increment_recent_cpu (void);
+void MLFQS_recalc (void);
+int count_list_len (struct list *li);
 
 #endif /* threads/thread.h */
