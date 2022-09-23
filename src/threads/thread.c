@@ -357,8 +357,9 @@ thread_foreach (thread_action_func *func, void *aux)
 void
 thread_set_priority (int new_priority) 
 {
-  thread_current ()->priority = new_priority;
-  if (thread_get_priority () < list_entry(list_begin(&ready_list), struct thread, elem)->priority) thread_yield ();
+  thread_current ()->init_priority = new_priority;
+  refresh_priority();
+  test_max_priority_betweenReadyandCur();
 }
 
 /* Returns the current thread's priority. */
@@ -535,6 +536,9 @@ init_thread (struct thread *t, const char *name, int priority)
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
   t->magic = THREAD_MAGIC;
+  t->init_priority = priority;
+  t->wait_this_lock = NULL;
+  list_init(&t->donations);
 
   old_level = intr_disable ();
   list_push_back (&all_list, &t->allelem);
@@ -655,3 +659,39 @@ allocate_tid (void)
 /* Offset of `stack' member within `struct thread'.
    Used by switch.S, which can't figure it out on its own. */
 uint32_t thread_stack_ofs = offsetof (struct thread, stack);
+
+/* Priority donation implement */
+void donate_priority(void) 
+{
+  struct thread *t = thread_current();
+  int depth=0;
+  while(t->wait_this_lock != NULL && depth<=8)
+  {    
+    t->wait_this_lock->holder->priority = t->priority>thread_get_priority()?t->priority:thread_get_priority();
+    t = t->wait_this_lock->holder;
+    depth++;
+  }
+}
+
+void remove_with_lock(struct lock *lock)
+{
+  struct list *donations = &thread_current()->donations;
+  struct list_elem *e;
+  for (e=list_begin(donations); e!=list_end(donations);)
+  {
+    if (list_entry(e,struct thread,elem)->wait_this_lock == lock)
+    {
+      list_remove(list_entry(e,struct thread,elem));
+    }
+    else e=list_next(e);
+  }
+}
+
+void refresh_priority(void)
+{
+  struct thread *current = thread_current();
+  struct thread *maxPriority = list_entry(list_begin(&current->donations),struct thread,elem);
+  current->priority = current->init_priority;
+
+  if(current->priority < maxPriority->priority) current->priority = maxPriority->priority;
+}
