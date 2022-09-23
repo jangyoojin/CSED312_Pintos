@@ -360,6 +360,7 @@ thread_set_priority (int new_priority)
   thread_current ()->init_priority = new_priority;
   refresh_priority();
   test_max_priority_betweenReadyandCur();
+  //if (thread_get_priority () < list_entry(list_begin(&ready_list), struct thread, elem)->priority) thread_yield ();
 }
 
 /* Returns the current thread's priority. */
@@ -497,7 +498,7 @@ kernel_thread (thread_func *function, void *aux)
   function (aux);       /* Execute the thread function. */
   thread_exit ();       /* If function() returns, kill the thread. */
 }
-
+
 /* Returns the running thread. */
 struct thread *
 running_thread (void) 
@@ -536,9 +537,14 @@ init_thread (struct thread *t, const char *name, int priority)
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
   t->magic = THREAD_MAGIC;
-  t->init_priority = priority;
-  t->wait_this_lock = NULL;
+
+
+//for priority donation
+  t->init_priority=priority;
+  t->wait_this_lock=NULL;
   list_init(&t->donations);
+
+
 
   old_level = intr_disable ();
   list_push_back (&all_list, &t->allelem);
@@ -666,9 +672,10 @@ void donate_priority(void)
   struct thread *t = thread_current();
   int depth=0;
   while(t->wait_this_lock != NULL && depth<=8)
-  {    
-    t->wait_this_lock->holder->priority = t->priority>thread_get_priority()?t->priority:thread_get_priority();
-    t = t->wait_this_lock->holder;
+  { 
+    struct thread *holderThread = t->wait_this_lock->holder;   
+    holderThread->priority = holderThread->priority > t->priority? holderThread->priority:t->priority;
+    t = holderThread;
     depth++;
   }
 }
@@ -679,9 +686,9 @@ void remove_with_lock(struct lock *lock)
   struct list_elem *e;
   for (e=list_begin(donations); e!=list_end(donations);)
   {
-    if (list_entry(e,struct thread,elem)->wait_this_lock == lock)
+    if (list_entry(e,struct thread,donation_elem)->wait_this_lock == lock)
     {
-      list_remove(list_entry(e,struct thread,elem));
+      e=list_remove(e);
     }
     else e=list_next(e);
   }
@@ -690,7 +697,7 @@ void remove_with_lock(struct lock *lock)
 void refresh_priority(void)
 {
   struct thread *current = thread_current();
-  struct thread *maxPriority = list_entry(list_begin(&current->donations),struct thread,elem);
+  struct thread *maxPriority = list_entry(list_begin(&current->donations),struct thread,donation_elem);
   current->priority = current->init_priority;
 
   if(current->priority < maxPriority->priority) current->priority = maxPriority->priority;

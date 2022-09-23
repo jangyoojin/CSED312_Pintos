@@ -193,6 +193,8 @@ lock_init (struct lock *lock)
    interrupt handler.  This function may be called with
    interrupts disabled, but interrupts will be turned back on if
    we need to sleep. */
+
+  
 void
 lock_acquire (struct lock *lock)
 {
@@ -202,13 +204,12 @@ lock_acquire (struct lock *lock)
 
   if (lock->holder != NULL) {
     thread_current()->wait_this_lock = lock;
-    list_insert_ordered(&lock->holder->donations, &thread_current()->donation_elem, compare_thread_priority, NULL);
+    list_insert_ordered(&lock->holder->donations,&thread_current()->donation_elem, compare_thread_priority,NULL);
     donate_priority();
   }
 
   sema_down (&lock->semaphore);
-  thread_current () -> wait_this_lock = NULL;
-
+  thread_current()->wait_this_lock=NULL;
   lock->holder = thread_current ();
 }
 
@@ -242,10 +243,10 @@ lock_release (struct lock *lock)
 {
   ASSERT (lock != NULL);
   ASSERT (lock_held_by_current_thread (lock));
-
   lock->holder = NULL;
+
   remove_with_lock(lock);
-  refresh_priority();  
+  refresh_priority();
   sema_up (&lock->semaphore);
 }
 
@@ -347,11 +348,10 @@ cond_signal (struct condition *cond, struct lock *lock UNUSED)
   ASSERT (lock_held_by_current_thread (lock));
 
   if (!list_empty (&cond->waiters)) 
-    { 
-      list_sort(&cond->waiters,compare_semaphore_priority,NULL);
+    { list_sort(&cond->waiters,compare_semaphore_priority,NULL );
       sema_up (&list_entry (list_pop_front (&cond->waiters),
                           struct semaphore_elem, elem)->semaphore);
-    }
+                          }
 }
 
 /* Wakes up all threads, if any, waiting on COND (protected by
