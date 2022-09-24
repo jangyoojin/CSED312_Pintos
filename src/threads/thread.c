@@ -535,8 +535,6 @@ void thread_awake(int64_t ticks)
   }
 
 }
-
-
 
 /* Idle thread.  Executes when no other thread is ready to run.
 
