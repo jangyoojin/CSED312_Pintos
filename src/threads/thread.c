@@ -370,6 +370,54 @@ thread_set_priority (int new_priority)
   //if (thread_get_priority () < list_entry(list_begin(&ready_list), struct thread, elem)->priority) thread_yield ();
 }
 
+/* Advanced Scheduler implement functions */
+void MLFQS_priority (struct thread *t)
+{
+  if (t == idle_thread) return;
+  int recentDiv4 = div_fp_int(t->recent_cpu, 4);
+  int niceMul2 = t->nice * 2;
+  int subFp = sub_fp(sub_fp_int(-(recentDiv4), -PRI_MAX), (niceMul2));
+  t->priority = fpToInt_round(subFp);
+
+  if(t->priority > PRI_MAX) t->priority = PRI_MAX;
+  else if (t->priority < PRI_MIN) t->priority = PRI_MIN;                                    
+}
+
+void MLFQS_recent_cpu (struct thread *t)
+{
+  if (t == idle_thread) return;
+  int loadAvgMul2 = mul_fp_int(load_avg, 2);
+  int addLoadAvgMul2 = add_fp_int(loadAvgMul2, 1);
+  int result = add_fp_int (mul_fp(div_fp(loadAvgMul2, addLoadAvgMul2), t->recent_cpu), t->nice);
+  t->recent_cpu = result;
+  if (t->recent_cpu < 0) t->recent_cpu = 0;
+}
+
+
+void MLFQS_load_avg (void) {
+  int ready_threads = list_size(&ready_list);
+  if(thread_current() != idle) ready_threads++;
+  
+  load_avg = add_fp(mul_fp((div_fp_int(intToFp(59),60)), load_avg), mul_fp_int((div_fp_int(intToFp(1),60)), ready_threads));
+  if (load_avg < 0) load_avg = 0;
+}
+
+void MLFQS_increment_recent_cpu (void) {
+  if (thread_current() == idle_thread) return;
+  thread_current()->recent_cpu = add_fp_int(thread_current()->recent_cpu, 1);
+}
+
+void MLFQS_recalc (void) {
+  struct list_elem *e;
+  struct thread *t;
+  for(e=list_begin(&all_list);e!=list_end(&all_list);e=list_next(e)){
+    t = list_entry(e,struct thread, elem);
+    MLFQS_recent_cpu(t);
+    MLFQS_priority(t);
+  }
+  list_sort(&ready_list,compare_thread_priority,NULL);
+}
+
 /* Returns the current thread's priority. */
 int
 thread_get_priority (void) 
@@ -428,7 +476,7 @@ thread_get_load_avg (void)
   int loadAvg;
 
   old_level = intr_disable();
-  loadAvg = mul_fp_int (load_avg, 100);
+  loadAvg = fpToInt_round(mul_fp_int (load_avg, 100));
   intr_set_level (old_level);
 
   return loadAvg;
@@ -443,7 +491,7 @@ thread_get_recent_cpu (void)
   int recent_cpu;
   
   old_level = intr_disable();
-  recent_cpu = mul_fp_int (current->recent_cpu, 100);
+  recent_cpu = fpToInt_round(mul_fp_int (current->recent_cpu, 100));
   intr_set_level (old_level);
 
   return recent_cpu;
@@ -746,46 +794,4 @@ void refresh_priority(void)
   if(current->priority < maxPriority->priority) current->priority = maxPriority->priority;
 }
 
-/* Advanced Scheduler implement functions */
-void MLFQS_priority (struct thread *t)
-{
-  if (t == idle_thread) return;
-  int recentDiv4 = div_fp_int(t->recent_cpu, 4);
-  int niceMul2 = t->nice * 2;
-  int subFp = sub_fp(sub_fp_int(-(recentDiv4), -PRI_MAX), (niceMul2));
-  t->priority = fpToInt_round(subFp);
-                                         
-}
 
-void MLFQS_recent_cpu (struct thread *t)
-{
-  if (t == idle_thread) return;
-  int loadAvgMul2 = mul_fp_int(load_avg, 2);
-  int addLoadAvgMul2 = add_fp_int(loadAvgMul2, 1);
-  int result = add_fp_int (mul_fp(div_fp(loadAvgMul2, addLoadAvgMul2), t->recent_cpu), t->nice);
-  t->recent_cpu = result;
-}
-
-
-void MLFQS_load_avg (void) {
-  int ready_threads = list_size(&ready_list);
-  if(thread_current() != idle) ready_threads++;
-  
-  load_avg = add_fp(mul_fp((div_fp_int(intToFp(59),60)), load_avg), mul_fp_int((div_fp_int(intToFp(1),60)), ready_threads));
-}
-
-void MLFQS_increment_recent_cpu (void) {
-  if (thread_current() == idle_thread) return;
-  thread_current()->recent_cpu = add_fp_int(thread_current()->recent_cpu, 1);
-}
-
-void MLFQS_recalc (void) {
-  struct list_elem *e;
-  struct thread *t;
-  for(e=list_begin(&all_list);e!=list_end(&all_list);e=list_next(e)){
-    t = list_entry(e,struct thread, elem);
-    MLFQS_recent_cpu(t);
-    MLFQS_priority(t);
-  }
-  list_sort(&ready_list,compare_thread_priority,NULL);
-}
