@@ -390,13 +390,18 @@ void
 thread_set_nice (int nice UNUSED) 
 {
   enum intr_level old_level;
-  struct thread *current = thread_current();
-  
   old_level = intr_disable();
+
+  struct thread *current = thread_current();
   current->nice = nice;
   MLFQS_priority(current);
+  test_max_priority_betweenReadyandCur();
+  /* nice값이 재설정되어 priority에 변동이 생겼을 것이라 생각
+  sort by priority and do context switch
+  but it's wrong
+
   list_sort(&ready_list,compare_thread_priority,NULL);
-  schedule ();
+  schedule ();*/
   intr_set_level (old_level);
 }
 
@@ -761,17 +766,12 @@ void MLFQS_recent_cpu (struct thread *t)
   t->recent_cpu = result;
 }
 
-int count_list_len (struct list *li){
-  struct list_elem *e;
-  int count = 0;
-  for(e=list_begin(li);e!=list_end(li);e=list_next(e)) 
-    if (list_entry(e,struct thread, elem)!=idle_thread) count++;
-  count++;
-  return count;
-}
 
 void MLFQS_load_avg (void) {
-  load_avg = add_fp(mul_fp(59/60, load_avg), mul_fp(1/60, count_list_len(&ready_list)));
+  int ready_threads = list_size(&ready_list);
+  if(thread_current() != idle) ready_threads++;
+  
+  load_avg = add_fp(mul_fp((div_fp_int(intToFp(59),60)), load_avg), mul_fp_int((div_fp_int(intToFp(1),60)), ready_threads));
 }
 
 void MLFQS_increment_recent_cpu (void) {

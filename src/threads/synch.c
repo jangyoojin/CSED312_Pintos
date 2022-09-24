@@ -221,6 +221,7 @@ lock_acquire (struct lock *lock)
 
    This function will not sleep, so it may be called within an
    interrupt handler. */
+   
 bool
 lock_try_acquire (struct lock *lock)
 {
