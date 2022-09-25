@@ -390,16 +390,16 @@ void MLFQS_recent_cpu (struct thread *t)
   int addLoadAvgMul2 = add_fp_int(loadAvgMul2, 1);
   int result = add_fp_int (mul_fp(div_fp(loadAvgMul2, addLoadAvgMul2), t->recent_cpu), t->nice);
   t->recent_cpu = result;
-  if (t->recent_cpu < 0) t->recent_cpu = 0;
+  //if (t->recent_cpu < 0) t->recent_cpu = 0;
 }
 
 
 void MLFQS_load_avg (void) {
   int ready_threads = list_size(&ready_list);
-  if(thread_current() != idle) ready_threads++;
+  if(thread_current() != idle_thread) ready_threads++;
   
   load_avg = add_fp(mul_fp((div_fp_int(intToFp(59),60)), load_avg), mul_fp_int((div_fp_int(intToFp(1),60)), ready_threads));
-  if (load_avg < 0) load_avg = 0;
+ // if (load_avg < 0) load_avg = 0;
 }
 
 void MLFQS_increment_recent_cpu (void) {
@@ -411,10 +411,22 @@ void MLFQS_recalc (void) {
   struct list_elem *e;
   struct thread *t;
   for(e=list_begin(&all_list);e!=list_end(&all_list);e=list_next(e)){
-    t = list_entry(e,struct thread, elem);
+    t = list_entry(e,struct thread, allelem);
     MLFQS_recent_cpu(t);
     MLFQS_priority(t);
   }
+  list_sort(&ready_list,compare_thread_priority,NULL);
+}
+
+void MLFQS_only_priority_recalc(void)
+{
+   struct list_elem *e;
+    struct thread *t;
+   for(e=list_begin(&all_list);e!=list_end(&all_list);e=list_next(e))
+    {
+     t = list_entry(e,struct thread, allelem);
+      MLFQS_priority(t);
+    }
   list_sort(&ready_list,compare_thread_priority,NULL);
 }
 
@@ -443,6 +455,7 @@ thread_set_nice (int nice UNUSED)
   struct thread *current = thread_current();
   current->nice = nice;
   MLFQS_priority(current);
+  list_sort (&ready_list, compare_thread_priority, NULL);
   test_max_priority_betweenReadyandCur();
   /* nice값이 재설정되어 priority에 변동이 생겼을 것이라 생각
   sort by priority and do context switch
@@ -625,7 +638,7 @@ init_thread (struct thread *t, const char *name, int priority)
   t->magic = THREAD_MAGIC;
 
 
-//for priority donation
+  //for priority donation
   t->init_priority=priority;
   t->wait_this_lock=NULL;
   list_init(&t->donations);

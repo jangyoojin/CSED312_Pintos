@@ -180,7 +180,8 @@ timer_interrupt (struct intr_frame *args UNUSED)
       MLFQS_recalc();
     }
     if (ticks % 4 == 0) {
-      MLFQS_priority(thread_current());
+      MLFQS_only_priority_recalc();
+      
     }
   }
   //alarm_clock
