@@ -376,7 +376,7 @@ void MLFQS_priority (struct thread *t)
   if (t == idle_thread) return;
   int recentDiv4 = div_fp_int(t->recent_cpu, 4);
   int niceMul2 = t->nice * 2;
-  int subFp = sub_fp(sub_fp_int(-(recentDiv4), -PRI_MAX), (niceMul2));
+  int subFp = sub_fp_int(sub_fp_int(-(recentDiv4), -PRI_MAX), (niceMul2));
   t->priority = fpToInt_round(subFp);
 
   if(t->priority > PRI_MAX) t->priority = PRI_MAX;
@@ -391,16 +391,16 @@ void MLFQS_recent_cpu (struct thread *t)
   int coefficient = div_fp(loadAvgMul2, addLoadAvgMul2);
   int result = add_fp_int (mul_fp(coefficient, t->recent_cpu), t->nice);
   t->recent_cpu = result;
-  //if (t->recent_cpu < 0) t->recent_cpu = 0;
 }
 
 
 void MLFQS_load_avg (void) {
   int ready_threads = list_size(&ready_list);
+  int coefficient1 = div_fp_int(intToFp(59),60);
+  int coefficient2 = div_fp_int(intToFp(1),60);
   if(thread_current() != idle_thread) ready_threads++;
   
-  load_avg = add_fp(mul_fp((div_fp_int(intToFp(59),60)), load_avg), mul_fp_int((div_fp_int(intToFp(1),60)), ready_threads));
- // if (load_avg < 0) load_avg = 0;
+  load_avg = add_fp(mul_fp(coefficient1, load_avg), mul_fp_int(coefficient2, ready_threads));
 }
 
 void MLFQS_increment_recent_cpu (void) {
@@ -408,17 +408,18 @@ void MLFQS_increment_recent_cpu (void) {
   thread_current()->recent_cpu = add_fp_int(thread_current()->recent_cpu, 1);
 }
 
+// only for calculate recent_cpu for all thread
 void MLFQS_recalc (void) {
   struct list_elem *e;
   struct thread *t;
   for(e=list_begin(&all_list);e!=list_end(&all_list);e=list_next(e)){
     t = list_entry(e,struct thread, allelem);
     MLFQS_recent_cpu(t);
-    MLFQS_priority(t);
   }
   list_sort(&ready_list,compare_thread_priority,NULL);
 }
 
+// only for calculate priority for all thread
 void MLFQS_only_priority_recalc(void)
 {
    struct list_elem *e;
@@ -456,14 +457,7 @@ thread_set_nice (int nice UNUSED)
   struct thread *current = thread_current();
   current->nice = nice;
   MLFQS_priority(current);
-  list_sort (&ready_list, compare_thread_priority, NULL);
   test_max_priority_betweenReadyandCur();
-  /* nice값이 재설정되어 priority에 변동이 생겼을 것이라 생각
-  sort by priority and do context switch
-  but it's wrong
-
-  list_sort(&ready_list,compare_thread_priority,NULL);
-  schedule ();*/
   intr_set_level (old_level);
 }
 
@@ -472,11 +466,10 @@ int
 thread_get_nice (void) 
 {
   enum intr_level old_level;
-  struct thread *current = thread_current();
   int nice;
   
   old_level = intr_disable();
-  nice = current->nice;
+  nice = thread_current() ->nice;
   intr_set_level (old_level);
 
   return nice;
@@ -542,9 +535,11 @@ void thread_awake(int64_t ticks)
   {
     struct thread *t= list_entry(e, struct thread, elem);
     if(t->wakeup_tick<=ticks)
-    {t->wakeup_tick=0;
-    e=list_remove(e);
-    thread_unblock(t);}
+    {
+      t->wakeup_tick=0;
+      e=list_remove(e);
+      thread_unblock(t);
+    }
     else break;
   }
 

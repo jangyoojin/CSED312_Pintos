@@ -175,13 +175,12 @@ timer_interrupt (struct intr_frame *args UNUSED)
   
   if (thread_mlfqs) {
     MLFQS_increment_recent_cpu();
+    if (ticks % 4 == 0) {
+      MLFQS_only_priority_recalc();
+    }
     if (ticks % TIMER_FREQ == 0) {
       MLFQS_recalc();
       MLFQS_load_avg();
-    }
-    if (ticks % 4 == 0) {
-      MLFQS_only_priority_recalc();
-      
     }
   }
   //alarm_clock
