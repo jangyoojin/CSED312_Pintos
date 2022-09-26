@@ -179,8 +179,9 @@ timer_interrupt (struct intr_frame *args UNUSED)
       MLFQS_recalc();
       MLFQS_load_avg();
     }
-    else if (ticks % 4 == 0) {
-      MLFQS_priority(thread_current());
+    if (ticks % 4 == 0) {
+      MLFQS_only_priority_recalc();
+      
     }
   }
   //alarm_clock
