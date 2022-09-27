@@ -409,14 +409,14 @@ void MLFQS_increment_recent_cpu (void) {
 }
 
 // only for calculate recent_cpu for all thread
-void MLFQS_recalc (void) {
+void MLFQS_only_recent_cpu_recalc (void) {
   struct list_elem *e;
   struct thread *t;
   for(e=list_begin(&all_list);e!=list_end(&all_list);e=list_next(e)){
     t = list_entry(e,struct thread, allelem);
     MLFQS_recent_cpu(t);
   }
-  list_sort(&ready_list,compare_thread_priority,NULL);
+  //list_sort(&ready_list,compare_thread_priority,NULL);
 }
 
 // only for calculate priority for all thread
@@ -457,6 +457,7 @@ thread_set_nice (int nice UNUSED)
   struct thread *current = thread_current();
   current->nice = nice;
   MLFQS_priority(current);
+  list_sort(&ready_list,compare_thread_priority,NULL);
   test_max_priority_betweenReadyandCur();
   intr_set_level (old_level);
 }
