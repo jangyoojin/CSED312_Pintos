@@ -388,7 +388,8 @@ void MLFQS_recent_cpu (struct thread *t)
   if (t == idle_thread) return;
   int loadAvgMul2 = mul_fp_int(load_avg, 2);
   int addLoadAvgMul2 = add_fp_int(loadAvgMul2, 1);
-  int result = add_fp_int (mul_fp(div_fp(loadAvgMul2, addLoadAvgMul2), t->recent_cpu), t->nice);
+  int coefficient = div_fp(loadAvgMul2, addLoadAvgMul2);
+  int result = add_fp_int (mul_fp(coefficient, t->recent_cpu), t->nice);
   t->recent_cpu = result;
   //if (t->recent_cpu < 0) t->recent_cpu = 0;
 }
