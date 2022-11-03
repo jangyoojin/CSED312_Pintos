@@ -56,6 +56,7 @@ process_execute (const char *file_name)
 static void
 start_process (void *file_name_)
 {
+  struct thread * cur= thread_current();
   char *file_name = file_name_;
   struct intr_frame if_;
   bool success;
@@ -83,14 +84,16 @@ start_process (void *file_name_)
   success = load (file_name, &if_.eip, &if_.esp);
 
 
-
-
-
   /* If load failed, quit. */
   palloc_free_page (file_name);
   if (!success) 
-    thread_exit ();
-  
+    { cur->pcb->is_load=false;
+      sema_up (&(cur->pcb->sema_load));
+      thread_exit ();
+    }
+
+  cur->pcb->is_load=true;
+  sema_up (&(cur->pcb->sema_load));
   argument_stack(argv,argc,&if_.esp);
   hex_dump(if_.esp,if_.esp,PHYS_BASE-if_.esp,true);
 
@@ -118,8 +121,15 @@ start_process (void *file_name_)
 int
 process_wait (tid_t child_tid UNUSED) 
 {
-  while(1);
-  return -1;
+  struct thread * child=get_child(child_tid);
+  if(child==NULL) return -1;
+  struct pcb * child_pcb=child->pcb;
+  int exit_stat=child->pcb->exit_status;
+  if(child_pcb==NULL|| child->pcb->is_load==false) return -1;
+  sema_down(&(child_pcb->sema_wait));
+  remove_child(child);
+
+  return exit_stat;
 }
 
 /* Free the current process's resources. */
@@ -530,4 +540,25 @@ for (i=argc-1;i>=i;i--)
 
 **(uint32_t**)esp=0;
 
+}
+
+
+struct thread * get_child(int pid)
+{
+  struct thread * t = thread_current();
+  struct thread * child;
+  struct list_elem * e;
+  for (e=list_begin(&t->child_list);e!=list_end(&t->child_list);e=list_next(e))
+  {
+    child=list_entry(e,struct thread, child_elem);
+    if(child->pcb->pid==pid)return child;
+  }
+
+  return NULL;
+}
+
+void remove_child (struct thread * child)
+{
+  list_remove(&(child->child_elem));
+  palloc_free_page(child->pcb);
 }

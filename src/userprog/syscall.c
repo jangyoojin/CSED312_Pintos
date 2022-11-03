@@ -76,14 +76,58 @@ syscall_handler (struct intr_frame *f UNUSED)
       get_arg(sp,argv,1);
       close(argv[0]);
       break;
-
-      
-
     
   }
 
   }
 
+
+void halt()
+{
+  shutdown_power_off();
+}
+
+void exit(int status)
+{
+  struct thread * t=thread_current();
+  t->pcb->exit_status=status;
+  printf("%s:exit(%d)\n",t->name,status);
+  thread_exit();
+}
+
+bool create_file(const char * file , unsigned initial_size)
+{
+  check_user_addr(file);
+  return filesys_create(file,initial_size);
+}
+
+bool remove_file(const char * file)
+{
+  check_user_addr(file);
+  return filesys_remove(file);
+}
+
+pid_t exec(const char * cmdline)
+{
+  check_user_addr(cmdline);
+  struct pcb * child_pcb;
+  pid_t pid=process_execute(cmdline);
+  if (pid == -1) return -1;
+  child_pcb=get_child(pid);
+  sema_down(&(child_pcb->sema_load));
+
+  if(child_pcb->is_load==false) return -1;
+  else return pid;
+}
+
+int wait(pid_t pid)
+{
+  return process_wait(pid);
+}
+
+
+
+//파일 만들면서 주소 체크하는 거 잊기 ㄴ ㄴ
 
 
 
