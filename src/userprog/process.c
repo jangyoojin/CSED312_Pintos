@@ -65,13 +65,37 @@ start_process (void *file_name_)
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
+
+
+  char **argv=palloc_get_page(0);
+  int argc=0;
+  char * token, *remained;
+
+  for(
+    token=strtok_r(file_name," ",&remained);
+    token!=NULL;
+    token=strtok_r(NULL," ",&remained),argc++
+  )
+  {
+    argv[argc]=token;
+  }
+
   success = load (file_name, &if_.eip, &if_.esp);
+
+
+
+
 
   /* If load failed, quit. */
   palloc_free_page (file_name);
   if (!success) 
     thread_exit ();
+  
+  argument_stack(argv,argc,&if_.esp);
+  hex_dump(if_.esp,if_.esp,PHYS_BASE-if_.esp,true);
 
+
+  palloc_free_page(argv);
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
      threads/intr-stubs.S).  Because intr_exit takes all of its
@@ -94,6 +118,7 @@ start_process (void *file_name_)
 int
 process_wait (tid_t child_tid UNUSED) 
 {
+  while(1);
   return -1;
 }
 
