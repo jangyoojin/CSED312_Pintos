@@ -28,7 +28,7 @@ static bool load (const char *cmdline, void (**eip) (void), void **esp);
 tid_t
 process_execute (const char *file_name) 
 {
-  char *fn_copy;
+  char *fn_copy, *fn_parsing, *remained;
   tid_t tid;
 
   /* Make a copy of FILE_NAME.
@@ -38,8 +38,14 @@ process_execute (const char *file_name)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
 
+
+  fn_parsing=(char*)malloc(strlen(file_name)+1);
+  strlcpy(fn_parsing, file_name, strlen(file_name)+1);
+  fn_parsing=strtok_r(fn_parsing, " ",&remained);
+
+
   /* Create a new thread to execute FILE_NAME. */
-  tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
+  tid = thread_create (fn_parsing, PRI_DEFAULT, start_process, fn_copy);
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
   return tid;
@@ -464,7 +470,7 @@ install_page (void *upage, void *kpage, bool writable)
           && pagedir_set_page (t->pagedir, upage, kpage, writable));
 }
 
-//verified
+//okay
 void argument_stack(char **argv, int argc, void **esp) 
 {
 int total_len=0,arg_len;
