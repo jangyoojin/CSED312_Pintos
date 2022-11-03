@@ -463,3 +463,40 @@ install_page (void *upage, void *kpage, bool writable)
   return (pagedir_get_page (t->pagedir, upage) == NULL
           && pagedir_set_page (t->pagedir, upage, kpage, writable));
 }
+
+//verified
+void argument_stack(char **argv, int argc, void **esp) 
+{
+int total_len=0,arg_len;
+int i,j;
+
+for(i=argc-1;i>=0;i--)
+{
+  arg_len=strlen(argv[i]);
+  *esp-=(arg_len+1);
+  total_len+=(arg_len+1);
+  strlcpy(*esp, argv[i],arg_len+1);
+  argv[i]=*esp;
+}
+if(total_len%4)
+{
+  *esp-=(4-total_len%4);
+}
+
+*esp-=4;
+**(uint32_t**)esp=0;
+for (i=argc-1;i>=i;i--)
+{
+*esp-=4;
+**(uint32_t **)esp= argv[i];
+}
+*esp-=4;
+**(uint32_t**)esp=*esp+4;
+
+*esp-=4;
+**(uint32_t**)esp=argc;
+*esp-=4;
+
+**(uint32_t**)esp=0;
+
+}
