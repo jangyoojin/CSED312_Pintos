@@ -12,13 +12,14 @@ static void syscall_handler (struct intr_frame *);
 void
 syscall_init (void) 
 {
-  lock_init(&filesys_lock->lock);
+  lock_init(&filesys_lock);
   intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
 }
 
 static void
 syscall_handler (struct intr_frame *f UNUSED) 
 {
+  printf("syscall handler!");
   int argv[3];
   uint32_t *sp= f->esp;
   check_user_addr((void*)sp);

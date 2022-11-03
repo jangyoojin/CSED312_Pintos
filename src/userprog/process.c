@@ -21,6 +21,8 @@
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
 
+struct lock write_lock;
+
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
    before process_execute() returns.  Returns the new process's
@@ -149,7 +151,8 @@ process_exit (void)
     process_file_close(i);
   }
   palloc_free_page(cur->pcb->FD_table);
-
+  file_close(cur->current_file);
+  
   pd = cur->pagedir;
   if (pd != NULL) 
     {
@@ -164,6 +167,7 @@ process_exit (void)
       pagedir_activate (NULL);
       pagedir_destroy (pd);
     }
+  
 }
 
 /* Sets up the CPU for running user code in the current
@@ -271,10 +275,12 @@ load (const char *file_name, void (**eip) (void), void **esp)
     goto done;
   process_activate ();
 
+  lock_acquire(&write_lock);
   /* Open executable file. */
   file = filesys_open (file_name);
   if (file == NULL) 
     {
+      lock_release(&write_lock);
       printf ("load: %s: open failed\n", file_name);
       goto done; 
     }
@@ -291,6 +297,10 @@ load (const char *file_name, void (**eip) (void), void **esp)
       printf ("load: %s: error loading executable\n", file_name);
       goto done; 
     }
+  
+  t->current_file = file;
+  file_deny_write(t->current_file);
+  lock_release(&write_lock);
 
   /* Read program headers. */
   file_ofs = ehdr.e_phoff;
