@@ -12,6 +12,7 @@ static void syscall_handler (struct intr_frame *);
 void
 syscall_init (void) 
 {
+  lock_init(&filesys_lock->lock);
   intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
 }
 
@@ -125,6 +126,89 @@ int wait(pid_t pid)
   return process_wait(pid);
 }
 
+int open(const char *file){
+  struct file *f;
+  check_user_addr((void*) file);
+  if(file == NULL) exit(-1);
+  f = filesys_open(file);
+
+  if(f==NULL) return -1;
+
+  int fd = process_file_add(f);
+  return fd;
+}
+
+int filesize(int fd) {
+  struct file* file = process_file_get(fd);
+  if(file==NULL) return -1;
+
+  return file_length(file);
+}
+
+int read (int fd, void *buffer, unsigned size){
+  check_user_addr(buffer);
+  int read_byte;
+  int i;
+
+  lock_acquire(&filesys_lock);
+  if(fd == 0) {
+    for (i = 0; i<size; i++) {
+      ((char*)buffer)[i] = input_getc();
+      if (((char*)buffer)[i]=='\0') break;
+    }
+    read_byte = i + 1;
+  }
+  else {
+    struct file *file = process_file_get(fd);
+    if(file == NULL) {
+      lock_release(&filesys_lock);
+      return -1;
+    }
+    read_byte = file_read(file, buffer, size);
+  }
+  
+  lock_release(&filesys_lock);
+  return read_byte;
+}
+
+int write(int fd, void* buffer, unsigned size) {
+  check_user_addr(buffer);
+  int write_byte;
+
+  if(fd == 1) {
+    lock_acquire(&filesys_lock);
+    putbuf(buffer,size);
+    lock_release(&filesys_lock);
+    return size;
+  }
+  else {
+    lock_acquire(&filesys_lock);
+    struct file *file = process_file_get(fd);
+    if(file == NULL) {
+      lock_release(&filesys_lock);
+      return -1;
+    }
+    write_byte = file_write(file,buffer,size);
+    lock_release(&filesys_lock);
+    return write_byte;
+  }
+}
+
+void seek (int fd, unsigned position) {
+  struct file* file = process_file_get(fd);
+  if(file == NULL) return;
+  else file_seek(file,position);
+}
+
+unsigned tell(int fd) {
+  struct file* file = process_file_get(fd);
+  if(file == NULL) return -1;
+  else return file_tell(file);
+}
+
+void close(int fd){
+  process_file_close(fd);
+}
 
 
 //파일 만들면서 주소 체크하는 거 잊기 ㄴ ㄴ

@@ -93,7 +93,8 @@ timer_sleep (int64_t ticks)
 
   ASSERT (intr_get_level () == INTR_ON);
   /* function call of inserting new thread to the sleep queue */
-  thread_sleep(ticks+start);
+  while(timer_elapsed(start)<ticks)
+    thread_yield();
 }
 
 /* Sleeps for approximately MS milliseconds.  Interrupts must be
@@ -172,8 +173,6 @@ timer_interrupt (struct intr_frame *args UNUSED)
 {
   ticks++;
   thread_tick ();
-  //alarm_clock
-  thread_awake(ticks);
 
 }
 
