@@ -3,6 +3,7 @@
 #include <syscall-nr.h>
 #include "threads/interrupt.h"
 #include "threads/thread.h"
+#include "process.h"
 
 #define STACK_END 0x8048000
 #define STACK_BASE 0xc0000000
@@ -92,7 +93,7 @@ void exit(int status)
 {
   struct thread * t=thread_current();
   t->pcb->exit_status = status;
-  printf("%s: exit(%d)\n",t->name, status);
+  printf("%s: exit(%d)\n",thread_name(), status);
   thread_exit();
 }
 
@@ -111,13 +112,13 @@ bool remove_file(const char * file)
 pid_t exec(const char * cmdline)
 {
   check_user_addr(cmdline);
-  struct pcb * child_pcb;
+  struct thread * child;
   pid_t pid=process_execute(cmdline);
   if (pid == -1) return -1;
-  child_pcb=get_child(pid);
-  sema_down(&(child_pcb->sema_load));
+  child = get_child(pid);
+  sema_down(&(child->pcb->sema_load));
 
-  if(child_pcb->is_load==false) return -1;
+  if(child->pcb->is_load==false) return -1;
   else return pid;
 }
 
@@ -130,12 +131,13 @@ int open(const char *file){
   struct file *f;
   check_user_addr((void*) file);
   if(file == NULL) exit(-1);
+  int fd_cnt=thread_current()->pcb->fd_max;
   f = filesys_open(file);
 
   if(f==NULL) return -1;
 
   int fd = process_file_add(f);
-  return fd;
+  return fd_cnt;
 }
 
 int filesize(int fd) {
@@ -223,7 +225,7 @@ void close(int fd){
 
 void check_user_addr(void *addr)
 {
-  if(addr<STACK_END && addr>=STACK_BASE) exit(-1);
+  if(addr<STACK_END || addr>=STACK_BASE) exit(-1);
 }
 
 void get_arg(int *esp, int * argv, int argc)

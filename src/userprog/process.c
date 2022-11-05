@@ -41,13 +41,14 @@ process_execute (const char *file_name)
   strlcpy (fn_copy, file_name, PGSIZE);
 
 
-  fn_parsing=(char*)malloc(strlen(file_name)+1);
-  strlcpy(fn_parsing, file_name, strlen(file_name)+1);
+  fn_parsing=palloc_get_page(0);
+  strlcpy(fn_parsing, file_name, PGSIZE);
   fn_parsing=strtok_r(fn_parsing, " ",&remained);
 
 
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (fn_parsing, PRI_DEFAULT, start_process, fn_copy);
+  palloc_free_page(fn_parsing);
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
   return tid;
@@ -71,11 +72,13 @@ start_process (void *file_name_)
 
 
   char **argv=palloc_get_page(0);
+  char *file_name_copy = palloc_get_page(0);
   int argc=0;
   char * token, *remained;
 
+  strlcpy(file_name_copy, file_name, PGSIZE);
   for(
-    token=strtok_r(file_name," ",&remained);
+    token=strtok_r(file_name_copy," ",&remained);
     token!=NULL;
     token=strtok_r(NULL," ",&remained),argc++
   )
@@ -83,13 +86,14 @@ start_process (void *file_name_)
     argv[argc]=token;
   }
 
-  success = load (file_name, &if_.eip, &if_.esp);
+  success = load (argv[0], &if_.eip, &if_.esp);
   
+  palloc_free_page (file_name);
   /* If load failed, quit. */
   if (!success) 
     { 
       palloc_free_page(argv);
-      palloc_free_page(file_name);
+      palloc_free_page(file_name_copy);
       cur->pcb->is_load=false;
       sema_up (&(cur->pcb->sema_load));
       thread_exit ();
@@ -98,11 +102,12 @@ start_process (void *file_name_)
   cur->pcb->is_load=true;
   sema_up (&(cur->pcb->sema_load));
   argument_stack(argv,argc,&if_.esp);
+
+  
+  palloc_free_page(argv);
+  palloc_free_page(file_name_copy);
   //hex_dump(if_.esp,if_.esp,PHYS_BASE-if_.esp,true);
 
-
-  palloc_free_page(argv);
-  palloc_free_page (file_name);
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
      threads/intr-stubs.S).  Because intr_exit takes all of its
@@ -149,8 +154,6 @@ process_exit (void)
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
   
-  
-  //file_close(cur->current_file);
 
   for(i = cur->pcb->fd_max-1; i >= 2; i--){
     process_file_close(i);
@@ -545,7 +548,7 @@ void argument_stack(char **argv, int argc, void **esp)
   }
   if(total_len%4)
   {
-    *esp-=4-total_len%4;
+    *esp -= (4-(total_len%4));
   }
 
   *esp-=4;
@@ -584,6 +587,7 @@ void remove_child (struct thread * child)
 {
   list_remove(&(child->child_elem));
   palloc_free_page(child->pcb);
+  palloc_free_page(child);
 }
 
 int process_file_add (struct file * f) {
