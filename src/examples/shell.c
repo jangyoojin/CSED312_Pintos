@@ -32,7 +32,7 @@ main (void)
         }
       else
         {
-          pid_t pid = exec (command);
+          pid_t pid =  (command);
           if (pid != PID_ERROR)
             printf ("\"%s\": exit code %d\n", command, wait (pid));
           else

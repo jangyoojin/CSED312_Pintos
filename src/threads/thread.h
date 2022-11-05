@@ -4,6 +4,22 @@
 #include <debug.h>
 #include <list.h>
 #include <stdint.h>
+#include "threads/synch.h"
+
+struct pcb
+{
+
+   int pid;
+   bool is_load;
+   bool is_exit;
+   int exit_status;
+
+   struct semaphore sema_load;
+   struct semaphore sema_wait;
+   struct file ** FD_table;
+   int fd_max;
+};
+
 
 /* States in a thread's life cycle. */
 enum thread_status
@@ -90,7 +106,6 @@ struct thread
     int priority;                       /* Priority. */
     struct list_elem allelem;           /* List element for all threads list. */
 
-   int64_t wakeup_tick; // data type right?
 
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
@@ -99,6 +114,14 @@ struct thread
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
 #endif
+
+    struct pcb * pcb;
+    struct thread * parent;
+    struct list child_list;
+    struct list_elem child_elem;
+
+    struct list file_list;
+    struct file * current_file;
 
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
@@ -139,13 +162,6 @@ int thread_get_nice (void);
 void thread_set_nice (int);
 int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
-
-
-//alarm system call
-void thread_sleep(int64_t ticks);
-void thread_awake(int64_t ticks);
-void update_min_wakeup_tick(int64_t ticks);
-int64_t get_min_wakeup_tick(void);
 
 
 #endif /* threads/thread.h */

@@ -21,6 +21,8 @@
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
 
+extern struct lock filesys_lock;
+
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
    before process_execute() returns.  Returns the new process's
@@ -56,6 +58,7 @@ process_execute (const char *file_name)
 static void
 start_process (void *file_name_)
 {
+  struct thread * cur= thread_current();
   char *file_name = file_name_;
   struct intr_frame if_;
   bool success;
@@ -81,21 +84,25 @@ start_process (void *file_name_)
   }
 
   success = load (file_name, &if_.eip, &if_.esp);
-
-
-
-
-
-  /* If load failed, quit. */
-  palloc_free_page (file_name);
-  if (!success) 
-    thread_exit ();
   
+  /* If load failed, quit. */
+  if (!success) 
+    { 
+      palloc_free_page(argv);
+      palloc_free_page(file_name);
+      cur->pcb->is_load=false;
+      sema_up (&(cur->pcb->sema_load));
+      thread_exit ();
+    }
+
+  cur->pcb->is_load=true;
+  sema_up (&(cur->pcb->sema_load));
   argument_stack(argv,argc,&if_.esp);
-  hex_dump(if_.esp,if_.esp,PHYS_BASE-if_.esp,true);
+  //hex_dump(if_.esp,if_.esp,PHYS_BASE-if_.esp,true);
 
 
   palloc_free_page(argv);
+  palloc_free_page (file_name);
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
      threads/intr-stubs.S).  Because intr_exit takes all of its
@@ -118,8 +125,17 @@ start_process (void *file_name_)
 int
 process_wait (tid_t child_tid UNUSED) 
 {
-  while(1);
-  return -1;
+  struct thread * child=get_child(child_tid);
+  if(child==NULL) return -1;
+  struct pcb * child_pcb=child->pcb;
+  int exit_stat=child->pcb->exit_status;
+  //if(child_pcb==NULL|| child->pcb->is_load==false) return -1;
+
+
+  sema_down(&(child_pcb->sema_wait));
+  remove_child(child);
+
+  return exit_stat;
 }
 
 /* Free the current process's resources. */
@@ -128,9 +144,19 @@ process_exit (void)
 {
   struct thread *cur = thread_current ();
   uint32_t *pd;
+  int i;
 
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
+  
+  
+  //file_close(cur->current_file);
+
+  for(i = cur->pcb->fd_max-1; i >= 2; i--){
+    process_file_close(i);
+  }
+  palloc_free_page(cur->pcb->FD_table);
+  
   pd = cur->pagedir;
   if (pd != NULL) 
     {
@@ -145,6 +171,8 @@ process_exit (void)
       pagedir_activate (NULL);
       pagedir_destroy (pd);
     }
+    thread_current()->pcb->is_exit = true;
+    sema_up(&cur->pcb->sema_wait);  
 }
 
 /* Sets up the CPU for running user code in the current
@@ -252,10 +280,12 @@ load (const char *file_name, void (**eip) (void), void **esp)
     goto done;
   process_activate ();
 
+  lock_acquire(&filesys_lock);
   /* Open executable file. */
   file = filesys_open (file_name);
   if (file == NULL) 
     {
+      lock_release(&filesys_lock);
       printf ("load: %s: open failed\n", file_name);
       goto done; 
     }
@@ -272,6 +302,10 @@ load (const char *file_name, void (**eip) (void), void **esp)
       printf ("load: %s: error loading executable\n", file_name);
       goto done; 
     }
+  
+  t->current_file = file;
+  file_deny_write(t->current_file);
+  lock_release(&filesys_lock);
 
   /* Read program headers. */
   file_ofs = ehdr.e_phoff;
@@ -498,36 +532,86 @@ install_page (void *upage, void *kpage, bool writable)
 //okay
 void argument_stack(char **argv, int argc, void **esp) 
 {
-int total_len=0,arg_len;
-int i,j;
+  int total_len=0,arg_len;
+  int i,j;
 
-for(i=argc-1;i>=0;i--)
-{
-  arg_len=strlen(argv[i]);
-  *esp-=(arg_len+1);
-  total_len+=(arg_len+1);
-  strlcpy(*esp, argv[i],arg_len+1);
-  argv[i]=*esp;
+  for(i=argc-1;i>=0;i--)
+  {
+    arg_len=strlen(argv[i]);
+    *esp-=(arg_len+1);
+    total_len+=(arg_len+1);
+    strlcpy(*esp, argv[i],arg_len+1);
+    argv[i]=*esp;
+  }
+  if(total_len%4)
+  {
+    *esp-=4-total_len%4;
+  }
+
+  *esp-=4;
+  **(uint32_t**)esp=0;
+  for (i=argc-1;i>=0;i--)
+  {
+    *esp-=4;
+    **(uint32_t **)esp= argv[i];
+  }
+  *esp-=4;
+  **(uint32_t**)esp=*esp+4;
+
+  *esp-=4;
+  **(uint32_t**)esp=argc;
+  *esp-=4;
+
+  **(uint32_t**)esp=0;
 }
-if(total_len%4)
+
+
+struct thread * get_child(int pid)
 {
-  *esp-=(4-total_len%4);
+  struct thread * t = thread_current();
+  struct thread * child;
+  struct list_elem * e;
+  for (e=list_begin(&t->child_list);e!=list_end(&t->child_list);e=list_next(e))
+  {
+    child=list_entry(e,struct thread, child_elem);
+    if(child->pcb->pid==pid)return child;
+  }
+
+  return NULL;
 }
 
-*esp-=4;
-**(uint32_t**)esp=0;
-for (i=argc-1;i>=i;i--)
+void remove_child (struct thread * child)
 {
-*esp-=4;
-**(uint32_t **)esp= argv[i];
+  list_remove(&(child->child_elem));
+  palloc_free_page(child->pcb);
 }
-*esp-=4;
-**(uint32_t**)esp=*esp+4;
 
-*esp-=4;
-**(uint32_t**)esp=argc;
-*esp-=4;
+int process_file_add (struct file * f) {
+  struct thread * t = thread_current();
 
-**(uint32_t**)esp=0;
+  t->pcb->FD_table[t->pcb->fd_max] = f;
+  t->pcb->fd_max++;
+  return t->pcb->fd_max;
+}
 
+struct file * process_file_get(int fd) {
+  struct thread* t = thread_current();
+
+  if(fd >= 2 && fd < t->pcb->fd_max) return t->pcb->FD_table[fd];
+  else exit(-1);
+}
+
+void process_file_close(int fd) {
+  int i;
+  struct thread* t = thread_current();
+  struct file * file = t->pcb->FD_table[fd];
+  if (file == NULL) return;
+  if(fd >= 2 && fd < t->pcb->fd_max) {
+    file_close(file);
+    t->pcb->FD_table[fd] = NULL;
+    for(i = fd; i < t->pcb->fd_max-1; i++)
+      t->pcb->FD_table[i] = t->pcb->FD_table[i+1];
+    t->pcb->fd_max--;
+  }
+  else return;
 }

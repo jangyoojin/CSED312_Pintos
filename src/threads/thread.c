@@ -24,13 +24,6 @@
    that are ready to run but not actually running. */
 static struct list ready_list;
 
-/*implementation
-sleep queue data structure,
-next_tick_to_awake global variable
-*/
-static struct list sleep_list;
-int64_t minof_wakeup_tick;
-
 
 
 /* List of all processes.  Processes are added to this list
@@ -101,8 +94,7 @@ thread_init (void)
   lock_init (&tid_lock);
   list_init (&ready_list);
   list_init (&all_list);
-  //alarm system call
-  list_init(&sleep_list);
+
 
   /* Set up a thread structure for the running thread. */
   initial_thread = running_thread ();
@@ -209,6 +201,27 @@ thread_create (const char *name, int priority,
   sf->eip = switch_entry;
   sf->ebp = 0;
 
+
+
+  t->pcb=palloc_get_page (0);
+  if(t->pcb==NULL)
+    return TID_ERROR;
+  t->parent=thread_current();
+  t->pcb->pid=tid;
+  t->pcb->exit_status=-1;
+  t->pcb->is_exit=false;
+  t->pcb->is_load=false;
+  sema_init(&(t->pcb->sema_load),0);
+  sema_init(&(t->pcb->sema_wait),0);
+  list_push_back(&(t->parent->child_list),&(t->child_elem));
+
+  t->pcb->fd_max=2;
+  t->pcb->FD_table=palloc_get_page(PAL_ZERO);
+  if(t->pcb->FD_table==NULL)
+  {
+    palloc_free_page(t->pcb);
+    return TID_ERROR;
+  }
   /* Add to run queue. */
   thread_unblock (t);
 
@@ -302,6 +315,7 @@ thread_exit (void)
      when it calls thread_schedule_tail(). */
   intr_disable ();
   list_remove (&thread_current()->allelem);
+
   thread_current ()->status = THREAD_DYING;
   schedule ();
   NOT_REACHED ();
@@ -387,56 +401,7 @@ thread_get_recent_cpu (void)
   return 0;
 }
 
-//alarm system call
-void thread_sleep(int64_t ticks)
-{
-  struct thread *t =thread_current();
-  enum intr_level old_level;
 
-  old_level=intr_disable();
-  if(t!=idle_thread)
-  {
-    t->wakeup_tick=ticks;
-    update_min_wakeup_tick(ticks);
-    list_push_back(&sleep_list,&t->elem);
-    thread_block();
-  }
-  intr_set_level(old_level);
-}
-
-void thread_awake(int64_t ticks)
-{
-  struct list_elem *e;
-  for(e=list_begin(&sleep_list);e!=list_end(&sleep_list);e=list_next(e))
-  {
-    struct thread *t= list_entry(e, struct thread, allelem);
-    if(t->wakeup_tick<=ticks)
-    {
-      t->wakeup_tick=0;
-      list_remove(&t->allelem);
-      thread_unblock(t);
-
-    }
-    else if(t->wakeup_tick>ticks)
-    {
-      update_min_wakeup_tick(t->wakeup_tick);
-    }
-  }
-
-}
-
-void update_min_wakeup_tick(int64_t ticks){
-
-minof_wakeup_tick=minof_wakeup_tick<ticks? minof_wakeup_tick:ticks;
-
-}
-
-int64_t get_min_wakeup_tick(void){
-
-return minof_wakeup_tick;
-
-
-}
 
 
 
@@ -532,6 +497,7 @@ init_thread (struct thread *t, const char *name, int priority)
   list_push_back (&all_list, &t->allelem);
 
   intr_set_level (old_level);
+  list_init(&(t->child_list));
 }
 
 /* Allocates a SIZE-byte frame at the top of thread T's stack and
@@ -603,7 +569,7 @@ thread_schedule_tail (struct thread *prev)
   if (prev != NULL && prev->status == THREAD_DYING && prev != initial_thread) 
     {
       ASSERT (prev != cur);
-      palloc_free_page (prev);
+      //palloc_free_page (prev);
     }
 }
 
