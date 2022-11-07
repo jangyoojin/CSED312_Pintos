@@ -312,6 +312,17 @@ thread_exit (void)
   //palloc_free_page(thread_current()->pcb);
 #endif
 
+  struct thread * cur = thread_current();
+  struct list_elem * e;
+  for(e = list_begin(&(cur->child_list)); e != list_end(&(cur->child_list)); e = list_next(e)) {
+    struct thread * t = list_entry(e, struct thread, child_elem);
+    sema_up(&(t->pcb->sema_exit));
+  }
+
+  sema_up(&(cur->pcb->sema_wait));
+  sema_down(&(cur->pcb->sema_exit));
+  
+
   /* Remove thread from all threads list, set our status to dying,
      and schedule another process.  That process will destroy us
      when it calls thread_schedule_tail(). */

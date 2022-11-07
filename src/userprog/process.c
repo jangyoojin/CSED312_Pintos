@@ -32,6 +32,7 @@ process_execute (const char *file_name)
 {
   char *fn_copy, *fn_parsing, *remained;
   tid_t tid;
+  struct thread * child;
 
   /* Make a copy of FILE_NAME.
      Otherwise there's a race between the caller and load(). */
@@ -42,15 +43,30 @@ process_execute (const char *file_name)
 
 
   fn_parsing=palloc_get_page(0);
+  if(fn_parsing == NULL)
+    return TID_ERROR;
+  
   strlcpy(fn_parsing, file_name, PGSIZE);
-  fn_parsing=strtok_r(fn_parsing, " ",&remained);
+  fn_parsing = strtok_r(fn_parsing, " ",&remained);
 
 
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (fn_parsing, PRI_DEFAULT, start_process, fn_copy);
-  palloc_free_page(fn_parsing);
+
+  // struct list_elem *e;
+  // struct thread *t;
+  // for(e=list_begin(&thread_current()->child_list);e!=list_end(&thread_current()->child_list);e=list_next(e))
+  // {
+  //   t=list_entry(e,struct thread,child_elem);
+  //   if(t->pcb->is_load==false)
+  //     return process_wait(tid);
+  // }
+
+  
   if (tid == TID_ERROR)
-    palloc_free_page (fn_copy); 
+    palloc_free_page (fn_copy);
+
+  palloc_free_page(fn_parsing);
   return tid;
 }
 
@@ -96,7 +112,7 @@ start_process (void *file_name_)
       palloc_free_page(file_name_copy);
       cur->pcb->is_load=false;
       sema_up (&(cur->pcb->sema_load));
-      thread_exit ();
+      exit (-1);
     }
 
   cur->pcb->is_load=true;
@@ -141,8 +157,9 @@ process_wait (tid_t child_tid UNUSED)
   int exit_stat=child->pcb->exit_status;
   remove_child(child);
   sema_up(&(child_pcb->sema_exit));
-
-
+  
+  // palloc_free_page(child->pcb);
+  // palloc_free_page(child);
   return exit_stat;
 }
 
@@ -156,14 +173,11 @@ process_exit (void)
 
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
-  
 
   for(i = cur->pcb->fd_max-1; i >= 2; i--){
     process_file_close(i);
   }
-  //file_close(cur->current_file);
-  // inode_close(cur->current_file);
-  // free(cur->current_file);
+  file_close(cur->current_file);
   palloc_free_page(cur->pcb->FD_table);
   
   pd = cur->pagedir;
@@ -181,9 +195,8 @@ process_exit (void)
       pagedir_destroy (pd);
     }
     thread_current()->pcb->is_exit = true;
-    sema_up(&cur->pcb->sema_wait);
-    sema_down(&cur->pcb->sema_exit);
-
+    //sema_up(&cur->pcb->sema_wait);
+    //sema_down(&cur->pcb->sema_exit);
 }
 
 /* Sets up the CPU for running user code in the current
@@ -388,7 +401,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
 
  done:
   /* We arrive here whether the load is successful or not. */
-  file_close (file);
+  //file_close (file);
   return success;
 }
 
