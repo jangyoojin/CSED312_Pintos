@@ -90,7 +90,7 @@ void halt()
 void exit(int status)
 {
   struct thread *t = thread_current();
-  t->pcb->exit_status = status;
+  t->exit_status = status;
   printf("%s: exit(%d)\n", thread_name(), status);
   thread_exit();
 }
@@ -115,9 +115,9 @@ pid_t exec(const char *cmdline)
   if (pid == -1)
     return -1;
   child = get_child(pid);
-  sema_down(&(child->pcb->sema_load));
+  sema_down(&(child->sema_load));
 
-  if (child->pcb->is_load == false)
+  if (child->is_load == false)
     return -1;
   else
     return pid;
@@ -134,7 +134,7 @@ int open(const char *file)
   check_user_addr((void *)file);
   if (file == NULL)
     exit(-1);
-  int fd_cnt = thread_current()->pcb->fd_max;
+  int fd_cnt = thread_current()->fd_max;
   f = filesys_open(file);
 
   if (f == NULL)

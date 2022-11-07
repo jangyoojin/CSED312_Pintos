@@ -110,13 +110,13 @@ start_process (void *file_name_)
     { 
       palloc_free_page(argv);
       palloc_free_page(file_name_copy);
-      cur->pcb->is_load=false;
-      sema_up (&(cur->pcb->sema_load));
+      cur->is_load=false;
+      sema_up (&(cur->sema_load));
       exit (-1);
     }
 
-  cur->pcb->is_load=true;
-  sema_up (&(cur->pcb->sema_load));
+  cur->is_load=true;
+  sema_up (&(cur->sema_load));
   argument_stack(argv,argc,&if_.esp);
 
   
@@ -148,17 +148,16 @@ process_wait (tid_t child_tid UNUSED)
 {
   struct thread * child=get_child(child_tid);
   if(child==NULL) return -1;
-  struct pcb * child_pcb=child->pcb;
-  //if(child_pcb==NULL|| child->pcb->is_load==false) return -1;
+  //if(child_pcb==NULL|| child->is_load==false) return -1;
 
 
-  sema_down(&(child_pcb->sema_wait));
+  sema_down(&(child->sema_wait));
 
-  int exit_stat=child->pcb->exit_status;
+  int exit_stat=child->exit_status;
   remove_child(child);
-  sema_up(&(child_pcb->sema_exit));
+  sema_up(&(child->sema_exit));
   
-  // palloc_free_page(child->pcb);
+  // palloc_free_page(child);
   // palloc_free_page(child);
   return exit_stat;
 }
@@ -174,11 +173,11 @@ process_exit (void)
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
 
-  for(i = cur->pcb->fd_max-1; i >= 2; i--){
+  for(i = cur->fd_max-1; i >= 2; i--){
     process_file_close(i);
   }
   file_close(cur->current_file);
-  palloc_free_page(cur->pcb->FD_table);
+  palloc_free_page(cur->FD_table);
   
   pd = cur->pagedir;
   if (pd != NULL) 
@@ -194,9 +193,9 @@ process_exit (void)
       pagedir_activate (NULL);
       pagedir_destroy (pd);
     }
-    thread_current()->pcb->is_exit = true;
-    //sema_up(&cur->pcb->sema_wait);
-    //sema_down(&cur->pcb->sema_exit);
+    thread_current()->is_exit = true;
+    //sema_up(&cur->sema_wait);
+    //sema_down(&cur->sema_exit);
 }
 
 /* Sets up the CPU for running user code in the current
@@ -598,7 +597,7 @@ struct thread * get_child(int pid)
   for (e=list_begin(&t->child_list);e!=list_end(&t->child_list);e=list_next(e))
   {
     child=list_entry(e,struct thread, child_elem);
-    if(child->pcb->pid==pid)return child;
+    if(child->pid==pid)return child;
   }
 
   return NULL;
@@ -607,36 +606,36 @@ struct thread * get_child(int pid)
 void remove_child (struct thread * child)
 {
   list_remove(&(child->child_elem));
-//  palloc_free_page(child->pcb);
+//  palloc_free_page(child);
 //  palloc_free_page(child);
 }
 
 int process_file_add (struct file * f) {
   struct thread * t = thread_current();
 
-  t->pcb->FD_table[t->pcb->fd_max] = f;
-  t->pcb->fd_max++;
-  return t->pcb->fd_max;
+  t->FD_table[t->fd_max] = f;
+  t->fd_max++;
+  return t->fd_max;
 }
 
 struct file * process_file_get(int fd) {
   struct thread* t = thread_current();
 
-  if(fd >= 2 && fd < t->pcb->fd_max) return t->pcb->FD_table[fd];
+  if(fd >= 2 && fd < t->fd_max) return t->FD_table[fd];
   else exit(-1);
 }
 
 void process_file_close(int fd) {
   int i;
   struct thread* t = thread_current();
-  struct file * file = t->pcb->FD_table[fd];
+  struct file * file = t->FD_table[fd];
   if (file == NULL) return;
-  if(fd >= 2 && fd < t->pcb->fd_max) {
+  if(fd >= 2 && fd < t->fd_max) {
     file_close(file);
-    t->pcb->FD_table[fd] = NULL;
-    for(i = fd; i < t->pcb->fd_max-1; i++)
-      t->pcb->FD_table[i] = t->pcb->FD_table[i+1];
-    t->pcb->fd_max--;
+    t->FD_table[fd] = NULL;
+    for(i = fd; i < t->fd_max-1; i++)
+      t->FD_table[i] = t->FD_table[i+1];
+    t->fd_max--;
   }
   else return;
 }

@@ -6,20 +6,7 @@
 #include <stdint.h>
 #include "threads/synch.h"
 
-struct pcb
-{
 
-   int pid;
-   bool is_load;
-   bool is_exit;
-   int exit_status;
-
-   struct semaphore sema_exit;
-   struct semaphore sema_load;
-   struct semaphore sema_wait;
-   struct file ** FD_table;
-   int fd_max;
-};
 
 
 /* States in a thread's life cycle. */
@@ -116,11 +103,22 @@ struct thread
     uint32_t *pagedir;                  /* Page directory. */
 #endif
 
-    struct pcb * pcb;
     struct thread * parent;
     struct list child_list;
     struct list_elem child_elem;
 
+    int pid;
+    bool is_load;
+    bool is_exit;
+    int exit_status;
+ 
+    struct semaphore sema_exit;
+    struct semaphore sema_load;
+    struct semaphore sema_wait;
+    struct file ** FD_table;
+    int fd_max;
+ 
+ 
     struct list file_list;
     struct file * current_file;
 

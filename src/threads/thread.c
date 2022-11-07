@@ -201,26 +201,20 @@ thread_create (const char *name, int priority,
   sf->eip = switch_entry;
   sf->ebp = 0;
 
-
-
-  t->pcb=palloc_get_page (0);
-  if(t->pcb==NULL)
-    return TID_ERROR;
   t->parent=thread_current();
-  t->pcb->pid=tid;
-  t->pcb->exit_status=-1;
-  t->pcb->is_exit=false;
-  t->pcb->is_load=false;
-  sema_init(&(t->pcb->sema_load),0);
-  sema_init(&(t->pcb->sema_wait),0);
-  sema_init(&(t->pcb->sema_exit),0);
+  t->pid=tid;
+  t->exit_status=-1;
+  t->is_exit=false;
+  t->is_load=false;
+  sema_init(&(t->sema_load),0);
+  sema_init(&(t->sema_wait),0);
+  sema_init(&(t->sema_exit),0);
   list_push_back(&(t->parent->child_list),&(t->child_elem));
 
-  t->pcb->fd_max=2;
-  t->pcb->FD_table=palloc_get_page(PAL_ZERO);
-  if(t->pcb->FD_table==NULL)
+  t->fd_max=2;
+  t->FD_table=palloc_get_page(PAL_ZERO);
+  if(t->FD_table==NULL)
   {
-    palloc_free_page(t->pcb);
     return TID_ERROR;
   }
   /* Add to run queue. */
@@ -316,11 +310,11 @@ thread_exit (void)
   struct list_elem * e;
   for(e = list_begin(&(cur->child_list)); e != list_end(&(cur->child_list)); e = list_next(e)) {
     struct thread * t = list_entry(e, struct thread, child_elem);
-    sema_up(&(t->pcb->sema_exit));
+    sema_up(&(t->sema_exit));
   }
 
-  sema_up(&(cur->pcb->sema_wait));
-  sema_down(&(cur->pcb->sema_exit));
+  sema_up(&(cur->sema_wait));
+  sema_down(&(cur->sema_exit));
   
 
   /* Remove thread from all threads list, set our status to dying,
@@ -583,9 +577,6 @@ thread_schedule_tail (struct thread *prev)
   if (prev != NULL && prev->status == THREAD_DYING && prev != initial_thread) 
     {
       ASSERT (prev != cur);
-      if(prev->pcb != NULL) {
-        palloc_free_page(prev->pcb);
-      }
       palloc_free_page (prev);
     }
 }
