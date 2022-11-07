@@ -14,6 +14,7 @@ struct pcb
    bool is_exit;
    int exit_status;
 
+   struct semaphore sema_exit;
    struct semaphore sema_load;
    struct semaphore sema_wait;
    struct file ** FD_table;

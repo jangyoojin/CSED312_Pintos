@@ -213,6 +213,7 @@ thread_create (const char *name, int priority,
   t->pcb->is_load=false;
   sema_init(&(t->pcb->sema_load),0);
   sema_init(&(t->pcb->sema_wait),0);
+  sema_init(&(t->pcb->sema_exit),0);
   list_push_back(&(t->parent->child_list),&(t->child_elem));
 
   t->pcb->fd_max=2;
@@ -308,6 +309,7 @@ thread_exit (void)
 
 #ifdef USERPROG
   process_exit ();
+  //palloc_free_page(thread_current()->pcb);
 #endif
 
   /* Remove thread from all threads list, set our status to dying,
@@ -315,8 +317,9 @@ thread_exit (void)
      when it calls thread_schedule_tail(). */
   intr_disable ();
   list_remove (&thread_current()->allelem);
-
+  
   thread_current ()->status = THREAD_DYING;
+  //palloc_free_page(thread_current());
   schedule ();
   NOT_REACHED ();
 }
@@ -569,7 +572,10 @@ thread_schedule_tail (struct thread *prev)
   if (prev != NULL && prev->status == THREAD_DYING && prev != initial_thread) 
     {
       ASSERT (prev != cur);
-      //palloc_free_page (prev);
+      if(prev->pcb != NULL) {
+        palloc_free_page(prev->pcb);
+      }
+      palloc_free_page (prev);
     }
 }
 

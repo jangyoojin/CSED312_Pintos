@@ -133,12 +133,15 @@ process_wait (tid_t child_tid UNUSED)
   struct thread * child=get_child(child_tid);
   if(child==NULL) return -1;
   struct pcb * child_pcb=child->pcb;
-  int exit_stat=child->pcb->exit_status;
   //if(child_pcb==NULL|| child->pcb->is_load==false) return -1;
 
 
   sema_down(&(child_pcb->sema_wait));
+
+  int exit_stat=child->pcb->exit_status;
   remove_child(child);
+  sema_up(&(child_pcb->sema_exit));
+
 
   return exit_stat;
 }
@@ -158,6 +161,9 @@ process_exit (void)
   for(i = cur->pcb->fd_max-1; i >= 2; i--){
     process_file_close(i);
   }
+  //file_close(cur->current_file);
+  // inode_close(cur->current_file);
+  // free(cur->current_file);
   palloc_free_page(cur->pcb->FD_table);
   
   pd = cur->pagedir;
@@ -175,7 +181,9 @@ process_exit (void)
       pagedir_destroy (pd);
     }
     thread_current()->pcb->is_exit = true;
-    sema_up(&cur->pcb->sema_wait);  
+    sema_up(&cur->pcb->sema_wait);
+    sema_down(&cur->pcb->sema_exit);
+
 }
 
 /* Sets up the CPU for running user code in the current
@@ -307,7 +315,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
     }
   
   t->current_file = file;
-  file_deny_write(t->current_file);
+  //file_deny_write(t->current_file);
   lock_release(&filesys_lock);
 
   /* Read program headers. */
@@ -586,8 +594,8 @@ struct thread * get_child(int pid)
 void remove_child (struct thread * child)
 {
   list_remove(&(child->child_elem));
-  palloc_free_page(child->pcb);
-  palloc_free_page(child);
+//  palloc_free_page(child->pcb);
+//  palloc_free_page(child);
 }
 
 int process_file_add (struct file * f) {
