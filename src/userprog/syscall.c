@@ -97,19 +97,21 @@ void exit(int status)
 
 bool create_file(const char *file, unsigned initial_size)
 {
-  check_user_addr(file);
+  //check_user_addr(file);
+  check_valid_string(file);
   return filesys_create(file, initial_size);
 }
 
 bool remove_file(const char *file)
 {
-  check_user_addr(file);
+  //check_user_addr(file);
+  check_valid_string(file);
   return filesys_remove(file);
 }
 
 pid_t exec(const char *cmdline)
 {
-  check_user_addr(cmdline);
+  check_valid_string(cmdline);
   struct thread *child;
   pid_t pid = process_execute(cmdline);
   if (pid == -1)
@@ -131,7 +133,7 @@ int wait(pid_t pid)
 int open(const char *file)
 {
   struct file *f;
-  check_user_addr((void *)file);
+  check_valid_string(file);
   if (file == NULL)
     exit(-1);
   int fd_cnt = thread_current()->fd_max;
@@ -158,7 +160,7 @@ int filesize(int fd)
 
 int read(int fd, void *buffer, unsigned size)
 {
-  check_user_addr(buffer);
+  check_valid_buffer(buffer, size, true);
   int read_byte;
   int i;
 
@@ -190,7 +192,7 @@ int read(int fd, void *buffer, unsigned size)
 
 int write(int fd, void *buffer, unsigned size)
 {
-  check_user_addr(buffer);
+  check_valid_buffer(buffer,size,false);
   int write_byte;
 
   if (fd == 1)
@@ -239,10 +241,42 @@ void close(int fd)
 }
 
 
-void check_user_addr(void *addr)
+struct vm_entry * check_user_addr(void *addr)
 {
   if (addr < STACK_END || addr >= STACK_BASE)
     exit(-1);
+
+  struct vm_entry * vme=vm_find_vme(addr);
+  
+  if(vme==NULL) 
+    exit(-1);
+
+  return vme;
+  
+}
+void check_valid_buffer (void * buffer, unsigned size, bool to_write)
+{
+
+  check_user_addr(buffer);
+  unsigned int i=0;
+  for (i;i<=size;i++)
+  { 
+    struct vm_entry * vme=check_user_addr(buffer+i);
+    if(to_write && !vme->writable)  
+      exit(-1);
+  }
+}
+
+void check_valid_string(const void * str)
+{
+  unsigned int i=0;
+  while(1)
+  {
+    check_user_addr(str+i);
+    if(*(char *)(str+i)=='\n') break;
+    i++;
+  }
+  return;
 }
 
 void get_arg(int *esp, int *argv, int argc)

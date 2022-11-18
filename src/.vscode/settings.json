@@ -1,6 +1,8 @@
 {
     "files.associations": {
         "cstdlib": "c",
-        "synch.h": "c"
+        "synch.h": "c",
+        "stdbool.h": "c",
+        "interrupt.h": "c"
     }
 }

@@ -3,12 +3,18 @@
 
 
 #include <stdbool.h>
+#include "vm/page.h"
 typedef int pid_t;
 struct lock filesys_lock;
 
 
+
 void syscall_init (void);
-void check_user_addr(void *addr);
+struct vm_entry * check_user_addr(void *addr);
+
+void check_valid_buffer(void * buffer, unsigned size, bool to_write);
+void check_valid_string(const void * str);
+
 void get_arg(int * esp,int *argv, int argc);
 void halt();
 void exit(int status);
