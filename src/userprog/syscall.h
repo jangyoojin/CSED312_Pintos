@@ -31,5 +31,7 @@ unsigned tell (int fd);
 void close (int fd);
 
 
+int mmap(int fd, void * addr);
+
 
 #endif /* userprog/syscall.h */
