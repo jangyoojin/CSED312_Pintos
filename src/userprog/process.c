@@ -660,7 +660,7 @@ bool handle_mm_fault(struct vm_entry * vme)
   if (vme == NULL) exit(-1);
   void * kaddr= palloc_get_page(PAL_USER);
   if(kaddr==NULL) return false;
-  bool success;
+  bool success, loaded;
 
   switch (vme->type)
   {
@@ -678,12 +678,13 @@ bool handle_mm_fault(struct vm_entry * vme)
     return false;
   }
 
-  if(success)
-    install_page(vme->vaddr,kaddr)
-
-
-
-
-
-
+  if(success) {
+    loaded = install_page(vme->vaddr, kaddr, vme->writable);
+    vme->is_loaded = loaded ? true : false;
+  }
+  else {
+    palloc_free_page(kaddr);
+  }
+  
+  return success;
 }
