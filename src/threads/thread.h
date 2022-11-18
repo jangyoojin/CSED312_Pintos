@@ -117,9 +117,6 @@ struct thread
     struct semaphore sema_wait;
     struct file ** FD_table;
     int fd_max;
- 
- 
-    struct list file_list;
     struct file * current_file;
 
     /* Owned by thread.c. */

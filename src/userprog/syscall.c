@@ -238,7 +238,6 @@ void close(int fd)
   process_file_close(fd);
 }
 
-//파일 만들면서 주소 체크하는 거 잊기 ㄴ ㄴ
 
 void check_user_addr(void *addr)
 {

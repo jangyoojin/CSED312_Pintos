@@ -606,8 +606,6 @@ struct thread * get_child(int pid)
 void remove_child (struct thread * child)
 {
   list_remove(&(child->child_elem));
-//  palloc_free_page(child);
-//  palloc_free_page(child);
 }
 
 int process_file_add (struct file * f) {
