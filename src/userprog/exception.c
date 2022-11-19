@@ -153,15 +153,7 @@ page_fault (struct intr_frame *f)
 
    if(not_present==false)
    {
-<<<<<<< HEAD
-<<<<<<< HEAD
-      printf("present\n");
-=======
       printf("whywhy");
->>>>>>> parent of 263b7c8... 34 test failed
-=======
-      printf("whywhy");
->>>>>>> parent of 263b7c8... 34 test failed
       exit(-1);
    }
 
