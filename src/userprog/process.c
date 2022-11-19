@@ -18,6 +18,7 @@
 #include "threads/thread.h"
 #include "threads/vaddr.h"
 #include "vm/page.h"
+#include "userprog/syscall.h"
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
@@ -181,6 +182,16 @@ process_exit (void)
   }
   file_close(cur->current_file);
   palloc_free_page(cur->FD_table);
+
+  struct list_elem * e;
+  for ( e =list_begin(&(cur->mmap_list)); e!=list_end(&cur->mmap_list);)
+  {
+    struct mmap_file * file = list_entry(e,struct mmap_file,elem );
+    do_munmap(file);
+    e=list_remove(e);
+    
+  }
+
 
   vm_destroy(&(cur->vm));
   
