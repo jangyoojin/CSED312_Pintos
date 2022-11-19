@@ -26,7 +26,6 @@ bool vm_insert_vme (struct hash *vm, struct vm_entry *vme) {
 
 bool vm_delete_vme (struct hash *vm, struct vm_entry *vme) {
     struct hash_elem * v = hash_delete(vm, &vme->elem);
-    
     free(vme);
     if(v == NULL) return false;
     return true;

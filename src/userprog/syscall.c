@@ -6,6 +6,7 @@
 #include "process.h"
 #include "filesys/filesys.h"
 #include "filesys/file.h"
+#include "vm/page.h"
 
 #define STACK_END 0x8048000
 #define STACK_BASE 0xc0000000
@@ -25,6 +26,7 @@ syscall_handler(struct intr_frame *f UNUSED)
   uint32_t *sp = f->esp;
   check_user_addr((void *)sp);
   int syscall_number = *sp;
+
 
   switch (syscall_number)
   {
@@ -262,7 +264,7 @@ void check_valid_buffer (void * buffer, unsigned size, bool to_write)
   for (i;i<=size;i++)
   { 
     struct vm_entry * vme=check_user_addr(buffer+i);
-    if(to_write && !vme->writable)  
+    if(to_write && vme->writable==false)  
       exit(-1);
   }
 }

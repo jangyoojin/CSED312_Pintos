@@ -494,7 +494,6 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 
       if(vm_find_vme(upage)!=NULL) return false;
       struct vm_entry * vme=malloc(sizeof(struct vm_entry));
-      if(vme==NULL) return false;
       vme-> file= file;
       vme-> type= VM_BIN;
       vme-> vaddr= (void *) upage;
@@ -504,7 +503,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       vme-> read_bytes=page_read_bytes;
       vme-> zero_bytes=page_zero_bytes;
 
-      vm_insert_vme(&thread_current()->vm,vme);
+      vm_insert_vme(&(thread_current()->vm),vme);
       /* Advance. */
       read_bytes -= page_read_bytes;
       zero_bytes -= page_zero_bytes;
@@ -665,7 +664,7 @@ bool handle_mm_fault(struct vm_entry * vme)
   switch (vme->type)
   {
   case VM_BIN:
-     success=load_file(kaddr, vme);
+      success=load_file(kaddr, vme);
      break;
   case VM_FILE:
       success=load_file(kaddr,vme);
@@ -681,6 +680,7 @@ bool handle_mm_fault(struct vm_entry * vme)
   if(success) {
     loaded = install_page(vme->vaddr, kaddr, vme->writable);
     vme->is_loaded = loaded ? true : false;
+    //printf("handle_mm_fault\n");
   }
   else {
     palloc_free_page(kaddr);
