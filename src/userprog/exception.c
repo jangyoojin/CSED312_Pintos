@@ -142,7 +142,6 @@ page_fault (struct intr_frame *f)
   /* Turn interrupts back on (they were only off so that we could
      be assured of reading CR2 before it changed). */
   intr_enable ();
-
   /* Count page faults. */
   page_fault_cnt++;
 
@@ -153,7 +152,6 @@ page_fault (struct intr_frame *f)
 
    if(not_present==false)
    {
-      printf("whywhy");
       exit(-1);
    }
 
@@ -161,7 +159,8 @@ page_fault (struct intr_frame *f)
    bool success = handle_mm_fault(vme);
 
    //printf("%d",success);
-   if(write && !(vme->writable))exit(-1);
+   if(write && !(vme->writable)){
+      exit(-1);}
 
 
    if(!success) exit(-1);
