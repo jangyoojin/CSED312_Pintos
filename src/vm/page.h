@@ -38,10 +38,10 @@ struct vm_entry {
 
 
 struct mmap_file{
-    int mapid;    struct list vme_list;
+    int mapid;    
+    struct list vme_list;
     struct file * file;
     struct list_elem elem;
-
 };
 
 
