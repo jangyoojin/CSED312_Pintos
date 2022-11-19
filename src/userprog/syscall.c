@@ -316,6 +316,12 @@ int mmap(int fd, void * addr)
   {
     return -1;
   }
+  
+  void * temp;
+  for(temp=addr;temp<addr+size;temp+=PGSIZE)
+  {
+    if(vm_find_vme(temp)!=NULL) return -1;
+  }
 
 
   struct mmap_file * mapfile = malloc(sizeof(struct mmap_file));
@@ -390,7 +396,6 @@ void do_munmap(struct mmap_file * mmap_file)
   struct list_elem * e;
   for (e=list_begin(&(mmap_file->vme_list)); e!= list_end(&mmap_file->vme_list);)
   {
-  
     struct vm_entry * vme = list_entry (e, struct vm_entry, mmap_elem);
     if (vme->is_loaded && pagedir_is_dirty(thread_current()->pagedir, vme->vaddr)){
       lock_acquire(&filesys_lock);

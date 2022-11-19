@@ -176,11 +176,9 @@ process_exit (void)
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
 
-  for(i = cur->fd_max-1; i >= 2; i--){
-    process_file_close(i);
-  }
-  file_close(cur->current_file);
-  palloc_free_page(cur->FD_table);
+  // for(i = cur->fd_max-1; i >= 2; i--){
+  //   process_file_close(i);
+  // }
 
   struct list_elem * e;
   for ( e =list_begin(&(cur->mmap_list)); e!=list_end(&cur->mmap_list);)
@@ -189,9 +187,10 @@ process_exit (void)
     do_munmap(file);
     e=list_remove(e);
   }
-
+  file_close(cur->current_file);
+  palloc_free_page(cur->FD_table);
   vm_destroy(&(cur->vm));
-  
+
   pd = cur->pagedir;
   if (pd != NULL) 
     {
