@@ -63,7 +63,6 @@ process_execute (const char *file_name)
   //   if(t->pcb->is_load==false)
   //     return process_wait(tid);
   // }
-
   
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy);

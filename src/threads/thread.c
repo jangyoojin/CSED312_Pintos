@@ -506,6 +506,7 @@ init_thread (struct thread *t, const char *name, int priority)
   
   intr_set_level (old_level);
   list_init(&(t->child_list));
+  list_init(&(t->mmap_list));
 }
 
 /* Allocates a SIZE-byte frame at the top of thread T's stack and

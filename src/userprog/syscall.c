@@ -293,3 +293,38 @@ void get_arg(int *esp, int *argv, int argc)
     argv[i] = *esp;
   }
 }
+
+int mmap(int fd, void * addr)
+{
+  check_user_addr(addr);
+  struct file * file = file_reopen(process_file_get(fd));
+  if (file==NULL) return -1;
+  if(addr==NULL || pg_of(addr)!=0) return -1;
+
+
+  for()
+    vm_find_vme(ptr)
+
+  struct mmap_file * mapfile =malloc(sizeof(struct mmap_file));
+  if(mmp_file==NULL) return -1;
+
+  mapfile->mapid=thread_current()->mapid;
+  thread_current()->mapid++;
+
+  mapfile->file=file_reopen(process_file_get(fd));
+
+
+  struct vm_entry * vme=malloc (sizeof(struct vm_entry));
+
+
+}
+
+void munmap(int mapping)
+{
+
+}
+
+void do_munmap(struct mmap_file * mmap_file)
+{
+  
+}
