@@ -17,8 +17,8 @@
 #include "threads/palloc.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
-#include "vm/page.h"
 #include "userprog/syscall.h"
+#include "vm/page.h"
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
@@ -107,7 +107,6 @@ start_process (void *file_name_)
   }
 
   success = load (argv[0], &if_.eip, &if_.esp);
-  printf("finish load\n");
   palloc_free_page (file_name);
   /* If load failed, quit. */
   if (!success) 
@@ -122,7 +121,6 @@ start_process (void *file_name_)
   cur->is_load=true;
   sema_up (&(cur->sema_load));
   argument_stack(argv,argc,&if_.esp);
-  printf("finish argument_stack\n");
 
   
   palloc_free_page(argv);
@@ -492,7 +490,6 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
   ASSERT (pg_ofs (upage) == 0);
   ASSERT (ofs % PGSIZE == 0);
 
-  printf("-------start load segment--------------\n");
   file_seek (file, ofs);
   while (read_bytes > 0 || zero_bytes > 0) 
     {
@@ -534,7 +531,6 @@ setup_stack (void **esp)
   uint8_t *kpage;
   bool success = false;
 
-  printf("-----------setup_stack-----------\n");
   kpage = palloc_get_page (PAL_USER | PAL_ZERO);
   if (kpage != NULL) 
     {
@@ -548,20 +544,16 @@ setup_stack (void **esp)
   void * vaddr= (uint8_t *) PHYS_BASE-PGSIZE;
 
   struct vm_entry * vme=malloc(sizeof(struct vm_entry));
-  printf("allocate vm_entry\n");
   if(vme==NULL) return false;
   vme-> type= VM_ANON;
-  printf("start pg_round_down\n");
   vme-> vaddr= pg_round_down(vaddr);
   vme-> writable=true;
   vme-> is_loaded=true;//lazy loading
-  printf("start vm_insert_vme\n");
   vm_insert_vme(&thread_current()->vm, vme);
 
     
 
 
-  printf("-------success:: %d", success);
   return success;
 }
 

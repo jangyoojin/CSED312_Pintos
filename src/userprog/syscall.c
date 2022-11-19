@@ -420,8 +420,5 @@ void do_munmap(struct mmap_file * mmap_file)
 
     file_close(mmap_file->file);
     free(mmap_file);
-    
-
-
 
 }
