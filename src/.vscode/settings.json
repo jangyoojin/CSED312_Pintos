@@ -3,12 +3,6 @@
         "cstdlib": "c",
         "synch.h": "c",
         "stdbool.h": "c",
-        "interrupt.h": "c",
-        "stddef.h": "c",
-        "thread.h": "c",
-        "vaddr.h": "c",
-        "*.inc": "c",
-        "*.tcc": "c",
-        "fstream": "c"
+        "interrupt.h": "c"
     }
 }
