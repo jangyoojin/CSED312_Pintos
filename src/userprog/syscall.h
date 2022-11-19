@@ -32,6 +32,9 @@ void close (int fd);
 
 
 int mmap(int fd, void * addr);
+void munmap(int mapping);
+void do_munmap(struct mmap_file * mmap_file);
+
 
 
 #endif /* userprog/syscall.h */

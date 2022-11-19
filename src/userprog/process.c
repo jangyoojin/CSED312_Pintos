@@ -182,6 +182,14 @@ process_exit (void)
   file_close(cur->current_file);
   palloc_free_page(cur->FD_table);
 
+  struct list_elem * e;
+  for ( e =list_begin(&(cur->mmap_list)); e!=list_end(&cur->mmap_list);)
+  {
+    struct mmap_file * file = list_entry(e,struct mmap_file,elem );
+    do_munmap(file);
+    e=list_remove(e);
+  }
+
   vm_destroy(&(cur->vm));
   
   pd = cur->pagedir;
@@ -531,7 +539,7 @@ setup_stack (void **esp)
         palloc_free_page (kpage);
     }
 
-  void * vaddr= (uint8_t *) PHYS_BASE-PGSIZE;
+  void * vaddr= (uint8_t *) PHYS_BASE - PGSIZE;
 
   struct vm_entry * vme=malloc(sizeof(struct vm_entry));
   if(vme==NULL) return false;
@@ -540,9 +548,6 @@ setup_stack (void **esp)
   vme-> writable=true;
   vme-> is_loaded=true;//lazy loading
   vm_insert_vme(&thread_current()->vm, vme);
-
-    
-
 
   return success;
 }
@@ -666,7 +671,7 @@ bool handle_mm_fault(struct vm_entry * vme)
       success=load_file(kaddr, vme);
      break;
   case VM_FILE:
-      success=load_file(kaddr,vme);
+      success=load_file(kaddr, vme);
       break;
 
   case VM_ANON:
