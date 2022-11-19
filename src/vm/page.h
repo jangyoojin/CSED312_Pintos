@@ -14,6 +14,7 @@
 #define VM_BIN 0
 #define VM_FILE 1
 #define VM_ANON 2
+#define CLOSE_ALL 10000
 
 struct vm_entry {
     uint8_t type;
@@ -35,6 +36,15 @@ struct vm_entry {
 
     struct hash_elem elem;
 };
+
+
+struct mmap_file{
+    int mapid;    
+    struct list vme_list;
+    struct file * file;
+    struct list_elem elem;
+};
+
 
 void vm_init (struct hash *vm);
 static unsigned vm_hash_func (const struct hash_elem *e, void *aux);

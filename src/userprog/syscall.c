@@ -7,6 +7,7 @@
 #include "filesys/filesys.h"
 #include "filesys/file.h"
 #include "vm/page.h"
+#include <string.h>
 
 #define STACK_END 0x8048000
 #define STACK_BASE 0xc0000000
@@ -258,7 +259,6 @@ struct vm_entry * check_user_addr(void *addr)
 }
 void check_valid_buffer (void * buffer, unsigned size, bool to_write)
 {
-
   check_user_addr(buffer);
   unsigned int i=0;
   for (i;i<=size;i++)
@@ -272,10 +272,12 @@ void check_valid_buffer (void * buffer, unsigned size, bool to_write)
 void check_valid_string(const void * str)
 {
   unsigned int i=0;
+  //printf("strlen: %s\n", (char*)str);
   while(1)
   {
+    //printf("%d   ::    ", str+i);
     check_user_addr(str+i);
-    if(*(char *)(str+i)=='\n') break;
+    if(*(char *)(str+i)=='\0') break;
     i++;
   }
   return;

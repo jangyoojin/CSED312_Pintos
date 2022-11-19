@@ -17,6 +17,7 @@
 #include "threads/palloc.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
+#include "userprog/syscall.h"
 #include "vm/page.h"
 
 static thread_func start_process NO_RETURN;
@@ -106,7 +107,6 @@ start_process (void *file_name_)
   }
 
   success = load (argv[0], &if_.eip, &if_.esp);
-  
   palloc_free_page (file_name);
   /* If load failed, quit. */
   if (!success) 
@@ -481,34 +481,34 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 
   file_seek (file, ofs);
   while (read_bytes > 0 || zero_bytes > 0) 
-    {
-      /* Calculate how to fill this page.
-         We will read PAGE_READ_BYTES bytes from FILE
-         and zero the final PAGE_ZERO_BYTES bytes. */
-      size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
-      size_t page_zero_bytes = PGSIZE - page_read_bytes;
+  {
+    /* Calculate how to fill this page.
+       We will read PAGE_READ_BYTES bytes from FILE
+       and zero the final PAGE_ZERO_BYTES bytes. */
+    size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
+    size_t page_zero_bytes = PGSIZE - page_read_bytes;
 
 
-/***-----------vme 만듦 ----------------***/
+    /***-----------vme 만듦 ----------------***/
+    if(vm_find_vme(upage)!=NULL) return false;
+    struct vm_entry * vme=malloc(sizeof(struct vm_entry));
+    if(vme == NULL) return false;
+    vme-> file= file;
+    vme-> type= VM_BIN;
+    vme-> vaddr= (void *) upage;
+    vme-> offset = ofs;
+    vme-> writable=writable;
+    vme-> is_loaded=false;//lazy loading
+    vme-> read_bytes=page_read_bytes;
+    vme-> zero_bytes=page_zero_bytes;
 
-      if(vm_find_vme(upage)!=NULL) return false;
-      struct vm_entry * vme=malloc(sizeof(struct vm_entry));
-      vme-> file= file;
-      vme-> type= VM_BIN;
-      vme-> vaddr= (void *) upage;
-      vme-> offset = ofs;
-      vme-> writable=writable;
-      vme-> is_loaded=false;//lazy loading
-      vme-> read_bytes=page_read_bytes;
-      vme-> zero_bytes=page_zero_bytes;
-
-      vm_insert_vme(&(thread_current()->vm),vme);
-      /* Advance. */
-      read_bytes -= page_read_bytes;
-      zero_bytes -= page_zero_bytes;
-      upage += PGSIZE;
-      ofs+=page_read_bytes;
-    }
+    vm_insert_vme(&(thread_current()->vm),vme);
+    
+    read_bytes -= page_read_bytes;
+    zero_bytes -= page_zero_bytes;
+    upage += PGSIZE;
+    ofs += page_read_bytes;
+  }
   return true;
 }
 
@@ -538,11 +538,9 @@ setup_stack (void **esp)
   vme-> vaddr= pg_round_down(vaddr);
   vme-> writable=true;
   vme-> is_loaded=true;//lazy loading
-
   vm_insert_vme(&thread_current()->vm, vme);
 
     
-
 
 
   return success;
