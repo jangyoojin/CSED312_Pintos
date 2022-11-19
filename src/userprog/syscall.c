@@ -269,12 +269,11 @@ void check_valid_buffer (void * buffer, unsigned size, bool to_write)
   for (i;i<=size;i++)
   { 
     struct vm_entry * vme=check_user_addr(buffer+i);
-    if(to_write && !vme->writable) {
-      printf("check buffer\n");
+    if(to_write && !vme->writable)  
       exit(-1);
-    }
   }
 }
+
 
 void check_valid_string(const void * str)
 {
@@ -384,10 +383,5 @@ void do_munmap(struct mmap_file * mmap_file)
         //vm_table에서 ㅅ
     }
 
-<<<<<<< HEAD
-    file_close(mmap_file->file);
-    free(mmap_file);
-=======
->>>>>>> parent of 37e0be8... IMPLEMENT : unmap but error is still unfixed,,
 
 }
