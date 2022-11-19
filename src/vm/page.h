@@ -14,6 +14,7 @@
 #define VM_BIN 0
 #define VM_FILE 1
 #define VM_ANON 2
+#define CLOSE_ALL 10000
 
 struct vm_entry {
     uint8_t type;
