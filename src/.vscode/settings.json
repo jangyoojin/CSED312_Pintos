@@ -3,6 +3,11 @@
         "cstdlib": "c",
         "synch.h": "c",
         "stdbool.h": "c",
-        "interrupt.h": "c"
+        "interrupt.h": "c",
+        "page.h": "c",
+        "syscall.h": "c",
+        "process.h": "c",
+        "filesys.h": "c",
+        "file.h": "c"
     }
 }
