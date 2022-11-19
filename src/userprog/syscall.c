@@ -7,6 +7,7 @@
 #include "filesys/filesys.h"
 #include "filesys/file.h"
 #include "vm/page.h"
+#include <string.h>
 
 #define STACK_END 0x8048000
 #define STACK_BASE 0xc0000000
@@ -81,13 +82,6 @@ syscall_handler(struct intr_frame *f UNUSED)
     get_arg(sp, argv, 1);
     close(argv[0]);
     break;
-  case SYS_MMAP:
-    mmap();
-    break;
-
-  case SYS_MUNMAP:
-    munmap();
-    break;
   }
 }
 
@@ -144,7 +138,7 @@ int open(const char *file)
   struct file *f;
   check_valid_string(file);
   if (file == NULL)
-    printf("open: no file\n"); exit(-1);
+    exit(-1);
   int fd_cnt = thread_current()->fd_max;
   f = filesys_open(file);
 
@@ -253,19 +247,18 @@ void close(int fd)
 struct vm_entry * check_user_addr(void *addr)
 {
   if (addr < STACK_END || addr >= STACK_BASE)
-    printf("check user addr: out of range\n"); exit(-1);
+    exit(-1);
 
   struct vm_entry * vme=vm_find_vme(addr);
   
   if(vme==NULL) 
-    printf("check user addr:no vme\n"); exit(-1);
+    exit(-1);
 
   return vme;
   
 }
 void check_valid_buffer (void * buffer, unsigned size, bool to_write)
 {
-
   check_user_addr(buffer);
   unsigned int i=0;
   for (i;i<=size;i++)
@@ -276,14 +269,15 @@ void check_valid_buffer (void * buffer, unsigned size, bool to_write)
   }
 }
 
-
 void check_valid_string(const void * str)
 {
   unsigned int i=0;
+  //printf("strlen: %s\n", (char*)str);
   while(1)
   {
+    //printf("%d   ::    ", str+i);
     check_user_addr(str+i);
-    if(*(char *)(str+i)=='\n') break;
+    if(*(char *)(str+i)=='\0') break;
     i++;
   }
   return;
@@ -298,92 +292,4 @@ void get_arg(int *esp, int *argv, int argc)
     esp += 1;
     argv[i] = *esp;
   }
-}
-
-
-int mmap(int fd, void * addr)
-{
-  check_user_addr(addr);
-
-  int size=filesize(fd);
-  struct file * file = file_reopen(process_file_get(fd));
-  if (file==NULL ||fd<2) return -1; 
-  if(addr==NULL || pg_of(addr)!=0) return -1;
-
-
-//if(vm_find_vme(addr)) return -1;
-
-  struct mmap_file * mapfile =malloc(sizeof(struct mmap_file));
-  if(mmpfile==NULL) return -1;
-    thread_current()->mapid++;
-
-  mapfile->mapid=thread_current()->mapid;
-  mapfile->file=file;
-
-  list_init(&(mapfile->vme_list));
-  list_push_back(&(thread_current()->mmap_list), &(mmapfile->elem));
-
-struct vm_entry * vme;
-int offset=0;
-while(size>0)
-{
-    vme=malloc(sizeof(struct vm_entry));
-    if(vme==NULL) return -1;
-    vme->file=file;
-    vme->type=VM_FILE;
-    vme->vaddr= addr;
-    vme->offset= offset;
-    vme-> writable= true;
-    vme-> is_loaded = false;
-    if (size<PGSIZE) vme->read_bytes= size;
-    else vme->read_bytes=PGSIZE;
-
-    vme->zero_bytes= PGSIZE- vme-> read_bytes;
-
-    list_push_back(&mapfile->vme_list , & vme->map_elem);
-    vm_insert_vme(&thread_current()-> vm, vme);
-
-    addr=addr + PGSIZE;
-    offset=offset + PGSIZE;
-    size= size - PGSIZE;
-    
-    
-
-}
-
-return mapfile->mapid;
-  
-
-
-}
-
-
-void munmap(int mapping)
-{
-struct list_elem * e;
-struct mmap_file * temp;
-for (e=list_begin(&(thread_current()->mmap_list); e!= list_end(&thread_current()->mmap_list);e=list_next(e)))
-{
-    temp = list_entry (e, struct mmap_file, elem);
-     if (temp->mapid == mapping) break;
-}
-do_munmap(temp);
-
-}
-
-void do_munmap(struct mmap_file * mmap_file)
-{
-    struct list_elem * e;
-    for (e=list_begin(&(mmap_file->vme_list); e!= list_end(&mmap_file->vme_list);))
-    {
-        struct vm_entry * vme = list_entry ( e, struct vm_entry, mmap_elem);
-        if (pagedir_is_dirty(thread_current()->pagedir, vme->vaddr)){
-            file_write_at(vme->file, vme->vaddr, vme->read_bytes,vme->offset );
-        }
-        
-        e= list_remove(e);//mmpfile의 vme_list 에서 삭제
-        //vm_table에서 ㅅ
-    }
-
-
 }

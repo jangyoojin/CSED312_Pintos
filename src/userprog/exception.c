@@ -150,21 +150,19 @@ page_fault (struct intr_frame *f)
   not_present = (f->error_code & PF_P) == 0;
   write = (f->error_code & PF_W) != 0;
   user = (f->error_code & PF_U) != 0;
+  
+  if(not_present==false)
+  {
+     exit(-1);
+  }
 
-   if(not_present==false)
-   {
-      printf("whywhy");
-      exit(-1);
-   }
+  struct vm_entry * vme = vm_find_vme(fault_addr);
+  bool success = handle_mm_fault(vme);
 
-   struct vm_entry * vme = vm_find_vme(fault_addr);
-   bool success = handle_mm_fault(vme);
-
-   //printf("%d",success);
-   if(write && !(vme->writable))exit(-1);
+  if(write && !(vme->writable))exit(-1);
 
 
-   if(!success) exit(-1);
+  if(!success) exit(-1);
 
 
 
