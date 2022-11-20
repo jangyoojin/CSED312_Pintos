@@ -310,28 +310,24 @@ int mmap(int fd, void * addr)
 {
 
   //check_user_addr(addr); //argument check
-  int size=filesize(fd);
-
-
+  int size = filesize(fd);
   struct file * file = file_reopen(process_file_get(fd));
   if (file==NULL ||fd<2) {
-    
     return -1; }
   if((uint32_t)addr%PGSIZE!=0||addr==NULL || pg_ofs(addr)!=0)
   {
     return -1;
   }
-
-//if(vm_find_vme(addr)) return -1;
-
-  void * ptr ;
-  for(ptr = addr ; ptr <addr+size;ptr+=PGSIZE)
+  
+  void * temp;
+  for(temp=addr;temp<addr+size;temp+=PGSIZE)
   {
-    if(vm_find_vme(ptr)) return -1;
+    if(vm_find_vme(temp)!=NULL) return -1;
   }
 
-  struct mmap_file * mapfile =malloc(sizeof(struct mmap_file));
-  //if(mapfile==NULL) return -1;
+
+  struct mmap_file * mapfile = malloc(sizeof(struct mmap_file));
+  if(mapfile==NULL) return -1;
 
   thread_current()->mapid++;
   mapfile->mapid=thread_current()->mapid;
@@ -392,7 +388,6 @@ for (e=list_begin(&(thread_current()->mmap_list)); e!= list_end(&thread_current(
       do_munmap(temp);
 
       break;
-    
     }
 }
 
@@ -400,27 +395,23 @@ for (e=list_begin(&(thread_current()->mmap_list)); e!= list_end(&thread_current(
 
 void do_munmap(struct mmap_file * mmap_file)
 {
-    struct list_elem * e;
-    for (e=list_begin(&(mmap_file->vme_list)); e!= list_end(&mmap_file->vme_list);)
-    {   
-        struct vm_entry * vme = list_entry (e, struct vm_entry, mmap_elem);
-        if (pagedir_is_dirty(thread_current()->pagedir, vme->vaddr)){
-          lock_acquire(&filesys_lock);
-          file_write_at(vme->file, vme->vaddr, vme->read_bytes,vme->offset);
-          lock_release(&filesys_lock);
-        }       
-        e=list_remove(e);//mmpfile의 vme_list 에서 삭제
-        
-        void * vaddr = vme->vaddr;
-        vm_delete_vme(&thread_current()->vm, vme);
-        pagedir_clear_page(thread_current()->pagedir, vaddr);
-        palloc_free_page(pagedir_get_page(thread_current()->pagedir, vaddr));
-        free(vme);
-    }
-    lock_acquire(&filesys_lock);
-    file_close(mmap_file->file);
-    lock_release(&filesys_lock);
-    free(mmap_file);
+  struct list_elem * e;
+  for (e=list_begin(&(mmap_file->vme_list)); e!= list_end(&mmap_file->vme_list);)
+  {
+    struct vm_entry * vme = list_entry (e, struct vm_entry, mmap_elem);
+    if (vme->is_loaded && pagedir_is_dirty(thread_current()->pagedir, vme->vaddr)){
+      lock_acquire(&filesys_lock);
+      file_write_at(vme->file, vme->vaddr, vme->read_bytes,vme->offset);
+      lock_release(&filesys_lock);
+    }       
+    e = list_remove(e);//mmpfile의 vme_list 에서 삭제
 
+    pagedir_clear_page(thread_current()->pagedir, vme->vaddr);
+    palloc_free_page(pagedir_get_page(thread_current()->pagedir, vme->vaddr));
+    vm_delete_vme(&thread_current()->vm, vme);
+    //free(vme);
+  }
+  file_close(mmap_file->file);
+  free(mmap_file);
 }
 

@@ -48,11 +48,14 @@ void vm_destroy (struct hash * vm) {
 void vm_destroy_func (struct hash_elem * v, void*aux UNUSED) {
     struct vm_entry * vme = hash_entry(v, struct vm_entry, elem);
     
-    if(vme->is_loaded) {
+    if(vme != NULL)
+    {
+        if(vme->is_loaded) {
         //maybe we should deallcate frame here......
         pagedir_clear_page(thread_current()->pagedir, vme->vaddr);
+        }
+        free(vme);
     }
-    free(vme);
 }
 
 bool load_file (void * kaddr, struct vm_entry *vme) {
