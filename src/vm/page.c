@@ -1,5 +1,7 @@
 #include "page.h"
+#include "threads/synch.h"
 
+extern struct lock filesys_lock;
 
 void vm_init (struct hash *vm) {
     hash_init(vm, vm_hash_func, vm_less_func, NULL);
@@ -54,10 +56,19 @@ void vm_destroy_func (struct hash_elem * v, void*aux UNUSED) {
 }
 
 bool load_file (void * kaddr, struct vm_entry *vme) {
-    size_t bytes = file_read_at(vme->file, kaddr, vme->read_bytes, vme->offset);
+    size_t bytes;
+    if(lock_held_by_current_thread(&filesys_lock))
+    {bytes = file_read_at(vme->file, kaddr, vme->read_bytes, vme->offset);
+    }
+    else {
+    lock_acquire(&filesys_lock);
+    bytes = file_read_at(vme->file, kaddr, vme->read_bytes, vme->offset);
+    lock_release(&filesys_lock);
+    }
     if (bytes == vme->read_bytes) {
         memset(kaddr + bytes, 0, vme->zero_bytes);
         return true;
     }
     return false;
+    
 }

@@ -8,6 +8,7 @@
 #include "filesys/file.h"
 #include "vm/page.h"
 #include <string.h>
+#include "threads/vaddr.h"
 
 #define STACK_END 0x8048000
 #define STACK_BASE 0xc0000000
@@ -262,7 +263,8 @@ struct vm_entry * check_user_addr(void *addr)
   struct vm_entry * vme=vm_find_vme(addr);
   
   if(vme==NULL) 
-    exit(-1);
+    {
+      exit(-1);}
 
   return vme;
   
@@ -315,12 +317,18 @@ int mmap(int fd, void * addr)
   if (file==NULL ||fd<2) {
     
     return -1; }
-  if(addr==NULL || pg_ofs(addr)!=0)
+  if((uint32_t)addr%PGSIZE!=0||addr==NULL || pg_ofs(addr)!=0)
   {
     return -1;
   }
 
 //if(vm_find_vme(addr)) return -1;
+
+  void * ptr ;
+  for(ptr = addr ; ptr <addr+size;ptr+=PGSIZE)
+  {
+    if(vm_find_vme(ptr)) return -1;
+  }
 
   struct mmap_file * mapfile =malloc(sizeof(struct mmap_file));
   //if(mapfile==NULL) return -1;
@@ -394,8 +402,7 @@ void do_munmap(struct mmap_file * mmap_file)
 {
     struct list_elem * e;
     for (e=list_begin(&(mmap_file->vme_list)); e!= list_end(&mmap_file->vme_list);)
-    {
-    
+    {   
         struct vm_entry * vme = list_entry (e, struct vm_entry, mmap_elem);
         if (pagedir_is_dirty(thread_current()->pagedir, vme->vaddr)){
           lock_acquire(&filesys_lock);
@@ -403,13 +410,16 @@ void do_munmap(struct mmap_file * mmap_file)
           lock_release(&filesys_lock);
         }       
         e=list_remove(e);//mmpfile의 vme_list 에서 삭제
-        vm_delete_vme(&thread_current()->vm, vme);
         
-        pagedir_clear_page(thread_current()->pagedir, vme->vaddr);
-        palloc_free_page(pagedir_get_page(thread_current()->pagedir, vme->vaddr));
+        void * vaddr = vme->vaddr;
+        vm_delete_vme(&thread_current()->vm, vme);
+        pagedir_clear_page(thread_current()->pagedir, vaddr);
+        palloc_free_page(pagedir_get_page(thread_current()->pagedir, vaddr));
         free(vme);
     }
+    lock_acquire(&filesys_lock);
     file_close(mmap_file->file);
+    lock_release(&filesys_lock);
     free(mmap_file);
 
 }

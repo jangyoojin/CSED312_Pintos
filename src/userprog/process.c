@@ -537,7 +537,7 @@ setup_stack (void **esp)
         palloc_free_page (kpage);
     }
 
-  void * vaddr= (uint8_t *) PHYS_BASE - PGSIZE;
+  void * vaddr= ((uint8_t *) PHYS_BASE) - PGSIZE;
 
   struct vm_entry * vme=malloc(sizeof(struct vm_entry));
   if(vme==NULL) return false;
