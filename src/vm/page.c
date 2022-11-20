@@ -59,19 +59,17 @@ void vm_destroy_func (struct hash_elem * v, void*aux UNUSED) {
 }
 
 bool load_file (void * kaddr, struct vm_entry *vme) {
-    size_t bytes;
-    if(lock_held_by_current_thread(&filesys_lock))
-    {bytes = file_read_at(vme->file, kaddr, vme->read_bytes, vme->offset);
-    }
-    else {
+
+ size_t bytes;
+    
     lock_acquire(&filesys_lock);
     bytes = file_read_at(vme->file, kaddr, vme->read_bytes, vme->offset);
-    lock_release(&filesys_lock);
-    }
+     lock_release(&filesys_lock);
     if (bytes == vme->read_bytes) {
         memset(kaddr + bytes, 0, vme->zero_bytes);
         return true;
     }
     return false;
+
     
 }

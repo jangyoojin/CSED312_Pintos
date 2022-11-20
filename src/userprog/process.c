@@ -178,14 +178,8 @@ process_exit (void)
   //   process_file_close(i);
   // }
 
-  struct list_elem * e;
-  for ( e =list_begin(&(cur->mmap_list)); e!=list_end(&cur->mmap_list);)
-  {
-    struct mmap_file * file = list_entry(e,struct mmap_file,elem );
-    do_munmap(file);
-    e=list_remove(e);
-  }
-  file_close(cur->current_file);
+  munmap(CLOSE_ALL);
+  //file_close(cur->current_file);
   palloc_free_page(cur->FD_table);
   vm_destroy(&(cur->vm));
 
@@ -496,7 +490,8 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 
 
     /***-----------vme 만듦 ----------------***/
-    if(vm_find_vme(upage)!=NULL) return false;
+    if(vm_find_vme(upage)!=NULL) {
+      return false;}
     struct vm_entry * vme=malloc(sizeof(struct vm_entry));
     if(vme == NULL) return false;
     vme-> file= file;

@@ -153,8 +153,7 @@ int open(const char *file)
   int fd_cnt = thread_current()->fd_max;
   f = filesys_open(file);
 
-  if (f == NULL)
-    return -1;
+  if (f == NULL) return -1;
 
   if (strcmp(thread_name(), file) == 0)
     file_deny_write(f);
@@ -381,12 +380,13 @@ for (e=list_begin(&(thread_current()->mmap_list)); e!= list_end(&thread_current(
     {     
       do_munmap(temp);
       e=list_remove(e);
+      free(temp);
     }
     else if (temp->mapid == mapping) 
     {
-      e=list_remove(e);
       do_munmap(temp);
-
+      e=list_remove(e);
+      free(temp);
       break;
     }
 }
@@ -403,15 +403,15 @@ void do_munmap(struct mmap_file * mmap_file)
       lock_acquire(&filesys_lock);
       file_write_at(vme->file, vme->vaddr, vme->read_bytes,vme->offset);
       lock_release(&filesys_lock);
+
     }       
     e = list_remove(e);//mmpfile의 vme_list 에서 삭제
 
     pagedir_clear_page(thread_current()->pagedir, vme->vaddr);
     palloc_free_page(pagedir_get_page(thread_current()->pagedir, vme->vaddr));
     vm_delete_vme(&thread_current()->vm, vme);
-    //free(vme);
   }
   file_close(mmap_file->file);
-  free(mmap_file);
+
 }
 
