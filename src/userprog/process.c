@@ -19,6 +19,7 @@
 #include "threads/vaddr.h"
 #include "userprog/syscall.h"
 #include "vm/page.h"
+#include "vm/frame.h"
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
@@ -518,17 +519,17 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 static bool
 setup_stack (void **esp) 
 {
-  uint8_t *kpage;
+  struct frame *kpage;
   bool success = false;
 
-  kpage = palloc_get_page (PAL_USER | PAL_ZERO);
+  kpage = frame_alloc(PAL_USER | PAL_ZERO);
   if (kpage != NULL) 
     {
       success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
       if (success)
         *esp = PHYS_BASE;
       else
-        palloc_free_page (kpage);
+        frame_dealloc(kpage->faddr);
     }
 
   void * vaddr= ((uint8_t *) PHYS_BASE) - PGSIZE;
@@ -653,17 +654,17 @@ void process_file_close(int fd) {
 bool handle_mm_fault(struct vm_entry * vme)
 {
   if (vme == NULL) exit(-1);
-  void * kaddr= palloc_get_page(PAL_USER);
+  struct frame *kaddr= frame_alloc(PAL_USER);
   if(kaddr==NULL) return false;
   bool success, loaded;
 
   switch (vme->type)
   {
   case VM_BIN:
-      success=load_file(kaddr, vme);
+      success=load_file(kaddr->faddr, vme);
      break;
   case VM_FILE:
-      success=load_file(kaddr, vme);
+      success=load_file(kaddr->faddr, vme);
       break;
 
   case VM_ANON:
@@ -674,12 +675,12 @@ bool handle_mm_fault(struct vm_entry * vme)
   }
 
   if(success) {
-    loaded = install_page(vme->vaddr, kaddr, vme->writable);
+    loaded = install_page(vme->vaddr, kaddr->faddr, vme->writable);
     vme->is_loaded = loaded ? true : false;
     //printf("handle_mm_fault\n");
   }
   else {
-    palloc_free_page(kaddr);
+    frame_dealloc(kaddr->faddr);
   }
   
   return success;
