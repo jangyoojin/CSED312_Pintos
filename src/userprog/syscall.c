@@ -411,7 +411,7 @@ void do_munmap(struct mmap_file * mmap_file)
     }       
     e = list_remove(e);//mmpfile의 vme_list 에서 삭제
 
-    pagedir_clear_page(thread_current()->pagedir, vme->vaddr);
+    //pagedir_clear_page(thread_current()->pagedir, vme->vaddr);
     frame_dealloc(pagedir_get_page(thread_current()->pagedir, vme->vaddr));
     vm_delete_vme(&thread_current()->vm, vme);
   }

@@ -1,7 +1,6 @@
 #include "page.h"
 #include "threads/synch.h"
 
-extern struct lock filesys_lock;
 
 void vm_init (struct hash *vm) {
     hash_init(vm, vm_hash_func, vm_less_func, NULL);

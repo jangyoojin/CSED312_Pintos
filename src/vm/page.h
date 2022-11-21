@@ -46,6 +46,7 @@ struct mmap_file{
     struct list_elem elem;
 };
 
+extern struct lock filesys_lock;
 
 void vm_init (struct hash *vm);
 static unsigned vm_hash_func (const struct hash_elem *e, void *aux);

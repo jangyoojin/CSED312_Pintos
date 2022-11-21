@@ -1,4 +1,5 @@
 #include "frame.h"
+#include "vm/page.h"
 
 
 void frame_table_init(void)
@@ -18,7 +19,7 @@ struct frame * frame_alloc(enum palloc_flags flags)
   
 	//free physical memory가 없으면 evict하고 할당
   while(faddr==NULL) {
-    frame_evict();
+    frame_evict(flags);
 		faddr = palloc_get_page(flags);
   }
 	
@@ -49,6 +50,7 @@ void frame_dealloc(void * faddr)
     f = list_entry(e, struct frame, elem);
     if(f->faddr==faddr) 
     {
+      pagedir_clear_page(f->thread->pagedir, f->vme->vaddr);
       palloc_free_page(f->faddr);
       lock_acquire(&frame_lock);
       list_remove(&(f->elem));
@@ -91,9 +93,44 @@ static struct list_elem* next_frame() {
 	
 }
 
-void frame_evict()
+void frame_evict(enum palloc_flags flags)
 {
+  lock_acquire(&frame_lock);
+  if(list_empty(&frame_table)) {
+    lock_release(&frame_lock);
+    return;
+  }
 
+  struct list_elem * e = next_frame();
+  struct frame * f = list_entry(e, struct frame, elem);
 
+  switch (f->vme->type)
+  {
+    case VM_BIN:
+      if(pagedir_is_dirty(f->thread->pagedir, f->vme->vaddr)) {
+        f->vme->type = VM_ANON;
+        f->vme->swap_slot = swap_out(f->faddr);
+      }
+      break;
+    case VM_FILE:
+      if(pagedir_is_dirty(f->thread->pagedir, f->vme->vaddr)) {
+        lock_acquire(&filesys_lock);
+        file_write_at(f->vme->file, f->faddr, f->vme->read_bytes, f->vme->offset);
+        lock_release(&filesys_lock);
+      }
+      break;
+    case VM_ANON:
+      f->vme->swap_slot = swap_out(f->faddr);
+      break;
+  }
+  f->vme->is_loaded = false;
+  list_remove(e);
+  pagedir_clear_page(f->thread->pagedir, f->vme->vaddr);
+  palloc_free_page(f->faddr);
+  lock_acquire(&frame_lock);
+  list_remove(&(f->elem));
+  lock_release(&frame_lock);
+  free(f);
+  lock_release(&filesys_lock);
 }
 
