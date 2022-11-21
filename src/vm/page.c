@@ -51,7 +51,7 @@ void vm_destroy_func (struct hash_elem * v, void*aux UNUSED) {
   {
     if(vme->is_loaded) {
         //maybe we should deallcate frame here......
-        pagedir_clear_page(thread_current()->pagedir, vme->vaddr);
+        frame_dealloc(vme->vaddr);
     }
     free(vme);
   }
@@ -81,7 +81,7 @@ bool load_file (void * kaddr, struct vm_entry *vme) {
 void swap_init()
 {
 	swap_block = block_get_role(BLOCK_SWAP);
-	swap_bitmap = bitmap_create(block_size(swap_block)*BLOCK_SECTOR_SIZE / PGSIZE);
+	swap_bitmap = bitmap_create(block_size(swap_block)*BLOCK_SECTOR_SIZE / PGSIZE);	
 	lock_init(&swap_lock);
 }
 

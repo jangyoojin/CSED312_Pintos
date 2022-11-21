@@ -36,7 +36,7 @@ process_execute (const char *file_name)
   char *fn_copy, *fn_parsing, *remained;
   tid_t tid;
   struct thread * child;
-
+  
   /* Make a copy of FILE_NAME.
      Otherwise there's a race between the caller and load(). */
   fn_copy = palloc_get_page (0);
@@ -525,7 +525,7 @@ setup_stack (void **esp)
   kpage = frame_alloc(PAL_USER | PAL_ZERO);
   if (kpage != NULL) 
     {
-      success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
+      success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage->faddr, true);
       if (success)
         *esp = PHYS_BASE;
       else
@@ -652,7 +652,7 @@ void process_file_close(int fd) {
 }
 
 bool handle_mm_fault(struct vm_entry * vme)
-{
+{  
   if (vme == NULL) exit(-1);
   struct frame *kaddr= frame_alloc(PAL_USER);
   if(kaddr==NULL) return false;
@@ -660,19 +660,18 @@ bool handle_mm_fault(struct vm_entry * vme)
 
   switch (vme->type)
   {
-  case VM_BIN:
-      success=load_file(kaddr->faddr, vme);
-     break;
-  case VM_FILE:
+    case VM_BIN:
       success=load_file(kaddr->faddr, vme);
       break;
-
-  case VM_ANON:
+    case VM_FILE:
+      success=load_file(kaddr->faddr, vme);
+      break;
+    case VM_ANON:
       swap_in(vme->swap_slot, kaddr->faddr);
       success = true;
       break;
-  default:
-    return false;
+    default:
+      return false;
   }
 
   if(success) {

@@ -12,6 +12,7 @@
 #include "threads/vaddr.h"
 #include "devices/block.h"
 #include "lib/kernel/bitmap.h"
+#include "vm/frame.h"
 
 #define VM_BIN 0
 #define VM_FILE 1
