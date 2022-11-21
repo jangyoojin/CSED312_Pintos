@@ -1,4 +1,3 @@
-/*
 #ifndef FRAME_H
 #define FRAME_H
 
@@ -15,7 +14,6 @@ struct frame
     struct vm_entry * vme;
     struct thread *thread;
     struct list_elem elem;
-    
 };
 
 struct list frame_table;
@@ -24,7 +22,9 @@ struct lock frame_lock;
 
 
 void frame_table_init(void);
+struct frame * frame_alloc(enum palloc_flags flags);
+void frame_dealloc(void * faddr);
+static struct list_elem* next_frame();
+void frame_evict();
 
 #endif
-
-*/

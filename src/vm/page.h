@@ -10,6 +10,8 @@
 #include "userprog/pagedir.h"
 #include "filesys/file.h"
 #include "threads/vaddr.h"
+#include "devices/block.h"
+#include "lib/kernel/bitmap.h"
 
 #define VM_BIN 0
 #define VM_FILE 1
@@ -30,11 +32,10 @@ struct vm_entry {
     size_t offset;
     size_t read_bytes;
     size_t zero_bytes;
+    struct hash_elem elem;
 
     /*-------Swapping---------*/
     size_t swap_slot;
-
-    struct hash_elem elem;
 };
 
 
@@ -55,5 +56,14 @@ struct vm_entry* vm_find_vme(void *vaddr);
 void vm_destroy (struct hash * vm);
 void vm_destroy_func (struct hash_elem * v, void*aux UNUSED);
 bool load_file (void * kaddr, struct vm_entry *vme);
+
+/*---------Swapping-----------*/
+static struct bitmap *swap_bitmap;
+static struct block *swap_block;
+static struct lock swap_lock;
+
+void swap_init();
+void swap_in(size_t used_index, void* kaddr);
+size_t swap_out(void* kaddr);
 
 #endif
