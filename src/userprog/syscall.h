@@ -4,6 +4,7 @@
 
 #include <stdbool.h>
 #include "vm/page.h"
+#include "vm/frame.h"
 typedef int pid_t;
 struct lock filesys_lock;
 

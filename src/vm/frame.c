@@ -50,7 +50,7 @@ void frame_dealloc(void * faddr)
     f = list_entry(e, struct frame, elem);
     if(f->faddr==faddr) 
     {
-      pagedir_clear_page(f->thread->pagedir, f->vme->vaddr);
+      //pagedir_clear_page(f->thread->pagedir, f->vme->vaddr);
       palloc_free_page(f->faddr);
       lock_acquire(&frame_lock);
       list_remove(&(f->elem));
