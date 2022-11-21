@@ -62,9 +62,14 @@ bool load_file (void * kaddr, struct vm_entry *vme) {
 
  size_t bytes;
     
+    if(lock_held_by_current_thread)
+        bytes = file_read_at(vme->file, kaddr, vme->read_bytes, vme->offset);
+    else {
     lock_acquire(&filesys_lock);
     bytes = file_read_at(vme->file, kaddr, vme->read_bytes, vme->offset);
-     lock_release(&filesys_lock);
+    lock_release(&filesys_lock);
+
+    }
     if (bytes == vme->read_bytes) {
         memset(kaddr + bytes, 0, vme->zero_bytes);
         return true;

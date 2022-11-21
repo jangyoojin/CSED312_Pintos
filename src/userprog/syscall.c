@@ -151,9 +151,12 @@ int open(const char *file)
   if (file == NULL)
     exit(-1);
   int fd_cnt = thread_current()->fd_max;
+  lock_acquire(&filesys_lock);
   f = filesys_open(file);
+  lock_release(&filesys_lock);
 
-  if (f == NULL) return -1;
+  if (f == NULL) {
+    return -1;}
 
   if (strcmp(thread_name(), file) == 0)
     file_deny_write(f);
@@ -190,6 +193,7 @@ int read(int fd, void *buffer, unsigned size)
   }
   else
   {
+    
     struct file *file = process_file_get(fd);
     if (file == NULL)
     {
@@ -308,7 +312,7 @@ void get_arg(int *esp, int *argv, int argc)
 int mmap(int fd, void * addr)
 {
 
-  //check_user_addr(addr); //argument check
+  //check_user_addr(addr); 
   int size = filesize(fd);
   struct file * file = file_reopen(process_file_get(fd));
   if (file==NULL ||fd<2) {
