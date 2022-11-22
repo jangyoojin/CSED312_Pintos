@@ -65,7 +65,7 @@ static struct list_elem* next_frame() {
 	struct list_elem* e;
 	struct frame* f;
 
-	lock_acquire(&frame_lock);
+	//lock_acquire(&frame_lock);
 
 	for(e = frame_clock_head; e != list_end(&frame_table); e = list_next(e)) {
 		f = list_entry(e, struct frame, elem);
@@ -73,7 +73,7 @@ static struct list_elem* next_frame() {
 			pagedir_set_accessed(f->thread->pagedir, f->vme->vaddr, false);
 		else {
 			frame_clock_head = f;
-			lock_release(&frame_lock);
+			//lock_release(&frame_lock);
 			return e;
 		}
 	}
@@ -127,10 +127,8 @@ void frame_evict(enum palloc_flags flags)
   list_remove(e);
   pagedir_clear_page(f->thread->pagedir, f->vme->vaddr);
   palloc_free_page(f->faddr);
-  lock_acquire(&frame_lock);
   list_remove(&(f->elem));
   lock_release(&frame_lock);
   free(f);
-  lock_release(&filesys_lock);
 }
 

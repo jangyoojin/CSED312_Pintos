@@ -9,6 +9,7 @@
 #include "vm/page.h"
 #include <string.h>
 #include "threads/vaddr.h"
+#include "vm/frame.h"
 
 #define STACK_END 0x8048000
 #define STACK_BASE 0xc0000000
@@ -411,7 +412,6 @@ void do_munmap(struct mmap_file * mmap_file)
     }       
     e = list_remove(e);//mmpfile의 vme_list 에서 삭제
 
-    //pagedir_clear_page(thread_current()->pagedir, vme->vaddr);
     frame_dealloc(pagedir_get_page(thread_current()->pagedir, vme->vaddr));
     vm_delete_vme(&thread_current()->vm, vme);
   }

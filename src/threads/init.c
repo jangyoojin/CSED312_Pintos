@@ -101,7 +101,6 @@ main (void)
   malloc_init ();
   paging_init ();
   frame_table_init();
-  swap_init();
 
   /* Segmentation. */
 #ifdef USERPROG
@@ -132,7 +131,7 @@ main (void)
 #endif
 
   printf ("Boot complete.\n");
-  
+  swap_init();
   /* Run actions specified on kernel command line. */
   run_actions (argv);
 

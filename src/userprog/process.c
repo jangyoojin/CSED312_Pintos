@@ -525,9 +525,10 @@ setup_stack (void **esp)
   kpage = frame_alloc(PAL_USER | PAL_ZERO);
   if (kpage != NULL) 
     {
-      success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
+      success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage->faddr, true);
       if (success)
         *esp = PHYS_BASE;
+
       else
         frame_dealloc(kpage->faddr);
     }
