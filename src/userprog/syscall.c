@@ -268,6 +268,7 @@ struct vm_entry * check_user_addr(void *addr)
   
   if(vme==NULL) 
     {
+      //printf("hello");
       exit(-1);}
 
   return vme;
@@ -313,7 +314,6 @@ void get_arg(int *esp, int *argv, int argc)
 int mmap(int fd, void * addr)
 {
 
-  check_user_addr(addr); 
   int size = filesize(fd);
   struct file * file = file_reopen(process_file_get(fd));
   if (size==0||file==NULL ||fd<2) {
@@ -322,6 +322,8 @@ int mmap(int fd, void * addr)
   {
     return -1;
   }
+  if(addr < STACK_END || addr >= STACK_BASE)
+  exit(-1);
   
   void * temp;
   for(temp=addr;temp<addr+size;temp+=PGSIZE)
@@ -400,6 +402,7 @@ void munmap(int mapping)
 
 void do_munmap(struct mmap_file * mmap_file)
 {
+  //printf("hello");
   struct list_elem * e;
   for (e=list_begin(&(mmap_file->vme_list)); e!= list_end(&mmap_file->vme_list);)
   {

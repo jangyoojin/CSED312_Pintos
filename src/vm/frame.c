@@ -114,14 +114,14 @@ void  frame_evict(enum palloc_flags flags)
   struct list_elem * e = next_frame();
   //printf("next_frame FINISH\n");
   if (e == NULL) {
-    printf("next_frame is NULL\n");
+    //printf("next_frame is NULL\n");
     lock_release(&frame_lock);
     return NULL;
   }
 
   
   struct frame * f = list_entry(e, struct frame, elem);
-  if(f->vme==NULL) printf("what the hell\n");
+  //if(f->vme==NULL) printf("what the hell\n");
   switch (f->vme->type)
   {
     
