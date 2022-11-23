@@ -8,6 +8,7 @@
         "syscall.h": "c",
         "process.h": "c",
         "filesys.h": "c",
-        "file.h": "c"
+        "file.h": "c",
+        "frame.h": "c"
     }
 }

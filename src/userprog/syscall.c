@@ -9,6 +9,7 @@
 #include "vm/page.h"
 #include <string.h>
 #include "threads/vaddr.h"
+#include "vm/frame.h"
 
 #define STACK_END 0x8048000
 #define STACK_BASE 0xc0000000
@@ -41,22 +42,27 @@ syscall_handler(struct intr_frame *f UNUSED)
     break;
   case SYS_EXEC:
     get_arg(sp, argv, 1);
+    printf("SYS_EXEC\n");
     f->eax = exec((const char *)argv[0]);
     break;
   case SYS_WAIT:
     get_arg(sp, argv, 1);
+    printf("SYS_WAIT\n");
     f->eax = wait((pid_t)argv[0]);
     break;
   case SYS_CREATE:
     get_arg(sp, argv, 2);
+    printf("SYS_CREATE\n");
     f->eax = create_file(argv[0], argv[1]);
     break;
   case SYS_REMOVE:
     get_arg(sp, argv, 1);
+    printf("SYS_REMOVE\n");
     f->eax = remove_file(argv[0]);
     break;
   case SYS_OPEN:
     get_arg(sp, argv, 1);
+    printf("SYS_OPEN\n");
     f->eax = open(argv[0]);
     break;
   case SYS_FILESIZE:
@@ -65,14 +71,17 @@ syscall_handler(struct intr_frame *f UNUSED)
     break;
   case SYS_READ:
     get_arg(sp, argv, 3);
+    printf("SYS_READ\n");
     f->eax = read(argv[0], argv[1], argv[2]);
     break;
   case SYS_WRITE:
     get_arg(sp, argv, 3);
+    printf("SYS_WRITE\n");
     f->eax = write(argv[0], argv[1], argv[2]);
     break;
   case SYS_SEEK:
     get_arg(sp, argv, 2);
+    printf("SYS_SEEK\n");
     seek(argv[0], argv[1]);
     break;
   case SYS_TELL:
@@ -81,6 +90,7 @@ syscall_handler(struct intr_frame *f UNUSED)
     break;
   case SYS_CLOSE:
     get_arg(sp, argv, 1);
+    printf("SYS_CLOSE\n");
     close(argv[0]);
     break;
   case SYS_MMAP:
@@ -209,6 +219,7 @@ int read(int fd, void *buffer, unsigned size)
 
 int write(int fd, void *buffer, unsigned size)
 {
+  printf("syscall: write \n");
   check_valid_buffer(buffer,size,false);
   int write_byte;
 
@@ -311,11 +322,10 @@ void get_arg(int *esp, int *argv, int argc)
 
 int mmap(int fd, void * addr)
 {
-
-  //check_user_addr(addr); 
+  check_user_addr(addr); 
   int size = filesize(fd);
   struct file * file = file_reopen(process_file_get(fd));
-  if (file==NULL ||fd<2) {
+  if (size==0||file==NULL ||fd<2) {
     return -1; }
   if((uint32_t)addr%PGSIZE!=0||addr==NULL || pg_ofs(addr)!=0)
   {
@@ -374,11 +384,11 @@ return mapfile->mapid;
 
 void munmap(int mapping)
 {
-  struct list_elem * e;
-  struct mmap_file * temp;
+struct list_elem * e;
+struct mmap_file * temp;
 
-  for (e=list_begin(&(thread_current()->mmap_list)); e!= list_end(&thread_current()->mmap_list);)
-  {
+for (e=list_begin(&(thread_current()->mmap_list)); e!= list_end(&thread_current()->mmap_list);)
+{
     temp = list_entry (e, struct mmap_file, elem);
     if (mapping==CLOSE_ALL) 
     {     
@@ -393,7 +403,7 @@ void munmap(int mapping)
       free(temp);
       break;
     }
-  }
+}
 
 }
 
@@ -403,17 +413,21 @@ void do_munmap(struct mmap_file * mmap_file)
   for (e=list_begin(&(mmap_file->vme_list)); e!= list_end(&mmap_file->vme_list);)
   {
     struct vm_entry * vme = list_entry (e, struct vm_entry, mmap_elem);
-    if (vme->is_loaded && pagedir_is_dirty(thread_current()->pagedir, vme->vaddr)){
-      lock_acquire(&filesys_lock);
-      file_write_at(vme->file, vme->vaddr, vme->read_bytes,vme->offset);
-      lock_release(&filesys_lock);
-
+    if (vme->is_loaded)
+    {
+      if (pagedir_is_dirty(thread_current()->pagedir, vme->vaddr)){
+        lock_acquire(&filesys_lock);
+        file_write_at(vme->file, vme->vaddr, vme->read_bytes,vme->offset);
+        lock_release(&filesys_lock);
+      }
+      pagedir_clear_page(thread_current()->pagedir,vme->vaddr);
+      frame_dealloc(pagedir_get_page(thread_current()->pagedir,vme->vaddr));
     }       
     e = list_remove(e);//mmpfile의 vme_list 에서 삭제
 
     pagedir_clear_page(thread_current()->pagedir, vme->vaddr);
-    frame_dealloc(pagedir_get_page(thread_current()->pagedir, vme->vaddr));
-    vm_delete_vme(&thread_current()->vm, vme);
+    frame_dealloc(pagedir_get_page(thread_current()->pagedir,vme->vaddr));
+    vm_delete_vme(&thread_current()->vm, vme->vaddr);
   }
   file_close(mmap_file->file);
 

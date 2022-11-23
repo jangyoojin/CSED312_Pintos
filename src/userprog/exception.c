@@ -124,7 +124,7 @@ kill (struct intr_frame *f)
 static void
 page_fault (struct intr_frame *f) 
 {
-   //printf("hello\n");
+  printf("page_fault\n");
   bool not_present;  /* True: not-present page, false: writing r/o page. */
   bool write;        /* True: access was write, false: access was read. */
   bool user;         /* True: access by user, false: access by kernel. */
@@ -153,12 +153,21 @@ page_fault (struct intr_frame *f)
   
   if(not_present==false)
   {
-    exit(-1);
+     exit(-1);
   }
 	
   struct vm_entry * vme = vm_find_vme(fault_addr);
-  if(write && !(vme->writable)) exit(-1);
+  if(!vme) printf("vme null : %x\n", fault_addr);
   bool success = handle_mm_fault(vme);
+
+  if(write && !(vme->writable))exit(-1);
+
+
   if(!success) exit(-1);
+
+
+
+
+   
 }
 

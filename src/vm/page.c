@@ -90,18 +90,17 @@ bool swap_in(size_t used_index, void* kaddr)
 {
 	lock_acquire(&swap_lock);
 	int i;
-    int sector_num = PGSIZE / BLOCK_SECTOR_SIZE;
+    int sector_num = BLOCK_SECTOR_SIZE / PGSIZE;
 	int target_sector = used_index * sector_num;
 
     if (bitmap_test(swap_bitmap, used_index) == 0) {
         lock_release(&swap_lock);
         return false;
     }
-    lock_acquire(&filesys_lock);
+
 	for (i = 0; i < sector_num; i++) {
 		block_read(swap_block, target_sector+i, kaddr+i*BLOCK_SECTOR_SIZE);
 	}
-    lock_release(&filesys_lock);
     bitmap_flip(swap_bitmap, used_index);
 	lock_release(&swap_lock);
     return true;
