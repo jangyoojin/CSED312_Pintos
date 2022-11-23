@@ -73,7 +73,7 @@ static struct list_elem* next_frame() {
 	struct list_elem* e;
 	struct frame* f;
   //printf("next_Frame\n");
-  //lock_acquire(&frame_lock);
+  lock_acquire(&frame_lock);
 
 
 	for(e = frame_clock_head; e != list_end(&frame_table); e = list_next(e)) {
@@ -82,7 +82,7 @@ static struct list_elem* next_frame() {
 		  pagedir_set_accessed(f->thread->pagedir, f->vme->vaddr, false); 
 		else {
 			//frame_clock_head = f;
-      //lock_release(&frame_lock);
+      lock_release(&frame_lock);
 			return e;
 		}
 	}
@@ -97,25 +97,25 @@ static struct list_elem* next_frame() {
       }
 		else {
 			//frame_clock_head = f;
-      //lock_release(&frame_lock);
+      lock_release(&frame_lock);
 			return e;
 		}
   }
+  lock_release(&frame_lock);
   return e;
   }
-  //lock_release(&frame_lock);
+  lock_release(&frame_lock);
 	return NULL;
 }
 
 void  frame_evict(enum palloc_flags flags)
 {
 
-  lock_acquire(&frame_lock);
+  
   struct list_elem * e = next_frame();
   //printf("next_frame FINISH\n");
   if (e == NULL) {
     //printf("next_frame is NULL\n");
-    lock_release(&frame_lock);
     return NULL;
   }
 
@@ -128,7 +128,9 @@ void  frame_evict(enum palloc_flags flags)
     case VM_BIN:
       if(pagedir_is_dirty(f->thread->pagedir, f->vme->vaddr)) {
         f->vme->type = VM_ANON;
+        
         f->vme->swap_slot = swap_out(f->faddr);
+
       }
       break;
     case VM_FILE:
@@ -151,7 +153,7 @@ void  frame_evict(enum palloc_flags flags)
   f->vme->is_loaded = false;
   //이거 왜 두번?
   free(f);
-  lock_release(&frame_lock);
+
   return;
 }
 

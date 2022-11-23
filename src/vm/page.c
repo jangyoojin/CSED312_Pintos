@@ -62,14 +62,13 @@ bool load_file (void * kaddr, struct vm_entry *vme) {
 
  size_t bytes;
     
-    if(lock_held_by_current_thread)
-        bytes = file_read_at(vme->file, kaddr, vme->read_bytes, vme->offset);
-    else {
-    lock_acquire(&filesys_lock);
+    //if(lock_held_by_current_thread)
+      //  bytes = file_read_at(vme->file, kaddr, vme->read_bytes, vme->offset);
+    //else {
+    
     bytes = file_read_at(vme->file, kaddr, vme->read_bytes, vme->offset);
-    lock_release(&filesys_lock);
 
-    }
+    //}
     if (bytes == vme->read_bytes) {
         memset(kaddr + bytes, 0, vme->zero_bytes);
         return true;
@@ -83,7 +82,10 @@ void swap_init()
 {
 	swap_block = block_get_role(BLOCK_SWAP);
 	swap_bitmap = bitmap_create(block_size(swap_block)*BLOCK_SECTOR_SIZE / PGSIZE);	
+    bitmap_set_all(swap_bitmap, 0);
 	lock_init(&swap_lock);
+    lock_init(&file_lock);
+
 }
 
 bool swap_in(size_t used_index, void* kaddr)
@@ -93,15 +95,16 @@ bool swap_in(size_t used_index, void* kaddr)
     int sector_num = PGSIZE / BLOCK_SECTOR_SIZE;
 	int target_sector = used_index * sector_num;
 
+
     if (bitmap_test(swap_bitmap, used_index) == 0) {
         lock_release(&swap_lock);
         return false;
     }
-    //lock_acquire(&filesys_lock);
+   lock_acquire(&filesys_lock);
 	for (i = 0; i < sector_num; i++) {
 		block_read(swap_block, target_sector+i, kaddr+i*BLOCK_SECTOR_SIZE);
 	}
-    //lock_release(&filesys_lock);
+    lock_release(&filesys_lock);
     bitmap_flip(swap_bitmap, used_index);
 	lock_release(&swap_lock);
     return true;
@@ -117,10 +120,12 @@ size_t swap_out(void* kaddr) {
         return BITMAP_ERROR;
     }
 
+    lock_acquire(&filesys_lock);
     int sector_num = PGSIZE/BLOCK_SECTOR_SIZE;
     for (i = 0; i < sector_num; i++) {
         block_write(swap_block, swap_slot * (PGSIZE / BLOCK_SECTOR_SIZE)+i, kaddr + i * BLOCK_SECTOR_SIZE);
     }
+    lock_release(&filesys_lock);
     lock_release(&swap_lock);
     return swap_slot;    
 }
