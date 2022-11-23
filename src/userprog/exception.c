@@ -6,6 +6,7 @@
 #include "threads/thread.h"
 #include "vm/page.h"
 #include "userprog/process.h"
+#include "userprog/syscall.h"
 
 /* Number of page faults processed. */
 static long long page_fault_cnt;
@@ -151,6 +152,7 @@ page_fault (struct intr_frame *f)
   write = (f->error_code & PF_W) != 0;
   user = (f->error_code & PF_U) != 0;
   
+  check_user_addr(fault_addr);
   if(not_present==false)
   {
     exit(-1);

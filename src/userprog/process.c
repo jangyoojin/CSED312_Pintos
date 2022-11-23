@@ -654,9 +654,10 @@ void process_file_close(int fd) {
 }
 
 bool handle_mm_fault(struct vm_entry * vme)
-{  
+{ 
   if (vme == NULL) exit(-1);
   struct frame *kaddr= frame_alloc(PAL_USER);
+  kaddr->vme=vme;
   if(kaddr==NULL) return false;
   bool success, loaded;
 
@@ -680,14 +681,14 @@ bool handle_mm_fault(struct vm_entry * vme)
     
     loaded = install_page(vme->vaddr, kaddr->faddr, vme->writable);
     vme->is_loaded = loaded ? true : false;
-    //printf("handle_mm_fault\n");x
+    
   }
   else {
     pagedir_clear_page(thread_current()->pagedir,vme->vaddr);
     frame_dealloc(kaddr->faddr);
   }
 
-  kaddr->vme=vme;
+
   
   return success;
 }

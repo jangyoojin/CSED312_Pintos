@@ -313,7 +313,7 @@ void get_arg(int *esp, int *argv, int argc)
 int mmap(int fd, void * addr)
 {
 
-  //check_user_addr(addr); 
+  check_user_addr(addr); 
   int size = filesize(fd);
   struct file * file = file_reopen(process_file_get(fd));
   if (size==0||file==NULL ||fd<2) {
