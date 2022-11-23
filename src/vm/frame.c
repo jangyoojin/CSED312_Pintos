@@ -43,6 +43,7 @@ struct frame * frame_alloc(enum palloc_flags flags)
 //faddr인 frame 할당 해제하기
 void frame_dealloc(void * faddr)
 {
+  
   struct list_elem * e;
   struct frame *f;
   for(e = list_begin(&frame_table); e != list_end(&frame_table); e = list_next(e))
@@ -59,17 +60,20 @@ void frame_dealloc(void * faddr)
       break;
     }
   }
+
 }
 
 static struct list_elem* next_frame() {
 	struct list_elem* e;
 	struct frame* f;
 
+  lock_acquire(&frame_lock);
 	for(e = frame_clock_head; e != list_end(&frame_table); e = list_next(e)) {
 		f = list_entry(e, struct frame, elem);
 		if(pagedir_is_accessed(f->thread->pagedir, f->vme->vaddr)) 
 			pagedir_set_accessed(f->thread->pagedir, f->vme->vaddr, false);
 		else {
+      lock_release(&frame_lock);
 			frame_clock_head = f;
 			return e;
 		}
@@ -80,6 +84,7 @@ static struct list_elem* next_frame() {
 		if(pagedir_is_accessed(f->thread->pagedir, f->vme->vaddr)) 
 			pagedir_set_accessed(f->thread->pagedir, f->vme->vaddr, false);
 		else {
+      lock_release(&frame_lock);
 			frame_clock_head = f;
 			return e;
 		}
@@ -90,7 +95,8 @@ static struct list_elem* next_frame() {
 
 void frame_evict(enum palloc_flags flags)
 {
-  lock_acquire(&frame_lock);
+  //printf("hello\n");
+  //lock_acquire(&frame_lock);
 
   struct list_elem * e = next_frame();
   struct frame * f = list_entry(e, struct frame, elem);
@@ -119,7 +125,8 @@ void frame_evict(enum palloc_flags flags)
   pagedir_clear_page(f->thread->pagedir, f->vme->vaddr);
   palloc_free_page(f->faddr);
   list_remove(&(f->elem));
+  //이거 왜 두번?
   free(f);
-  lock_release(&frame_lock);
+  //lock_release(&frame_lock);
 }
 

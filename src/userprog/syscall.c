@@ -316,7 +316,7 @@ int mmap(int fd, void * addr)
   //check_user_addr(addr); 
   int size = filesize(fd);
   struct file * file = file_reopen(process_file_get(fd));
-  if (file==NULL ||fd<2) {
+  if (size==0||file==NULL ||fd<2) {
     return -1; }
   if((uint32_t)addr%PGSIZE!=0||addr==NULL || pg_ofs(addr)!=0)
   {
@@ -404,16 +404,21 @@ void do_munmap(struct mmap_file * mmap_file)
   for (e=list_begin(&(mmap_file->vme_list)); e!= list_end(&mmap_file->vme_list);)
   {
     struct vm_entry * vme = list_entry (e, struct vm_entry, mmap_elem);
-    if (vme->is_loaded && pagedir_is_dirty(thread_current()->pagedir, vme->vaddr)){
+    if (vme->is_loaded)
+    {
+      if (pagedir_is_dirty(thread_current()->pagedir, vme->vaddr)){
       lock_acquire(&filesys_lock);
       file_write_at(vme->file, vme->vaddr, vme->read_bytes,vme->offset);
       lock_release(&filesys_lock);
 
+    }
+    pagedir_clear_page(thread_current()->pagedir,vme->vaddr);
+    frame_dealloc(pagedir_get_page(thread_current()->pagedir,vme->vaddr));
     }       
     e = list_remove(e);//mmpfile의 vme_list 에서 삭제
 
-    pagedir_clear_page(thread_current()->pagedir, vme->vaddr);
-    frame_dealloc(pagedir_get_page(thread_current()->pagedir, vme->vaddr));
+    //pagedir_clear_page(thread_current()->pagedir, vme->vaddr);
+    //palloc_free_page(pagedir_get_page(thread_current()->pagedir,vme->vaddr));
     vm_delete_vme(&thread_current()->vm, vme);
   }
   file_close(mmap_file->file);

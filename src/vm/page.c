@@ -51,7 +51,8 @@ void vm_destroy_func (struct hash_elem * v, void*aux UNUSED) {
   {
     if(vme->is_loaded) {
         //maybe we should deallcate frame here......
-        frame_dealloc(vme->vaddr);
+        pagedir_clear_page(thread_current()->pagedir,vme->vaddr);
+        frame_dealloc(pagedir_get_page(thread_current()->pagedir, vme->vaddr));
     }
     free(vme);
   }
@@ -85,7 +86,7 @@ void swap_init()
 	lock_init(&swap_lock);
 }
 
-void swap_in(size_t used_index, void* kaddr)
+bool swap_in(size_t used_index, void* kaddr)
 {
 	lock_acquire(&swap_lock);
 	int i;
@@ -102,6 +103,7 @@ void swap_in(size_t used_index, void* kaddr)
 	}
     bitmap_flip(swap_bitmap, used_index);
 	lock_release(&swap_lock);
+    return true;
 }
 
 size_t swap_out(void* kaddr) {
