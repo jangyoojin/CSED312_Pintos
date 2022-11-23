@@ -528,6 +528,7 @@ setup_stack (void **esp)
       success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage->faddr, true);
       if (success)
         *esp = PHYS_BASE;
+
       else
         frame_dealloc(kpage->faddr);
     }
@@ -535,6 +536,7 @@ setup_stack (void **esp)
   void * vaddr= ((uint8_t *) PHYS_BASE) - PGSIZE;
 
   struct vm_entry * vme=malloc(sizeof(struct vm_entry));
+  kpage->vme=vme;
   if(vme==NULL) return false;
   vme-> type= VM_ANON;
   vme-> vaddr= pg_round_down(vaddr);
@@ -667,21 +669,25 @@ bool handle_mm_fault(struct vm_entry * vme)
       success=load_file(kaddr->faddr, vme);
       break;
     case VM_ANON:
-      swap_in(vme->swap_slot, kaddr->faddr);
-      success = true;
+      success = swap_in(vme->swap_slot, kaddr->faddr);
+
       break;
     default:
       return false;
   }
 
   if(success) {
+    
     loaded = install_page(vme->vaddr, kaddr->faddr, vme->writable);
     vme->is_loaded = loaded ? true : false;
-    //printf("handle_mm_fault\n");
+    //printf("handle_mm_fault\n");x
   }
   else {
+    pagedir_clear_page(thread_current()->pagedir,vme->vaddr);
     frame_dealloc(kaddr->faddr);
   }
+
+  kaddr->vme=vme;
   
   return success;
 }

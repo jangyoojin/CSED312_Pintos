@@ -19,7 +19,7 @@ struct frame * frame_alloc(enum palloc_flags flags)
   
 	//free physical memory가 없으면 evict하고 할당
   while(faddr==NULL) {
-    printf("frame_alloc: faddr is NULL\n");
+    //printf("frame_alloc: faddr is NULL\n");
     frame_evict(flags);
 		faddr = palloc_get_page(flags);
   }
@@ -44,6 +44,7 @@ struct frame * frame_alloc(enum palloc_flags flags)
 //faddr인 frame 할당 해제하기
 void frame_dealloc(void * faddr)
 {
+  
   struct list_elem * e;
   struct frame *f;
   for(e = list_begin(&frame_table); e != list_end(&frame_table); e = list_next(e))
@@ -60,6 +61,7 @@ void frame_dealloc(void * faddr)
       break;
     }
   }
+
 }
 
 static struct list_elem* next_frame() {
@@ -68,7 +70,7 @@ static struct list_elem* next_frame() {
   //printf("next_Frame\n");
   //lock_acquire(&frame_lock);
   if (frame_clock_head == NULL) {
-    printf("frame_clock_head is NULL\n");
+    //printf("frame_clock_head is NULL\n");
     if(!list_empty(&frame_table))
     {
       frame_clock_head = list_entry(list_begin(&frame_table), struct frame, elem);
@@ -84,7 +86,7 @@ static struct list_elem* next_frame() {
 	for(e = frame_clock_head; e != list_end(&frame_table); e = list_next(e)) {
 		f = list_entry(e, struct frame, elem);
 		if(pagedir_is_accessed(f->thread->pagedir, f->vme->vaddr)) 
-			{pagedir_set_accessed(f->thread->pagedir, f->vme->vaddr, false); printf("%d ", pagedir_is_accessed(f->thread->pagedir, f->vme->vaddr));}
+			pagedir_set_accessed(f->thread->pagedir, f->vme->vaddr, false); //printf("%d ", pagedir_is_accessed(f->thread->pagedir, f->vme->vaddr));}
 		else {
 			//frame_clock_head = f;
       //lock_release(&frame_lock);
@@ -95,7 +97,7 @@ static struct list_elem* next_frame() {
 	for(e = list_begin(&frame_table); e != frame_clock_head; e = list_next(e)) {
 		f = list_entry(e, struct frame, elem);
 		if(pagedir_is_accessed(f->thread->pagedir, f->vme->vaddr)) 
-			{pagedir_set_accessed(f->thread->pagedir, f->vme->vaddr, false); printf("%d ", pagedir_is_accessed(f->thread->pagedir, f->vme->vaddr));}
+			pagedir_set_accessed(f->thread->pagedir, f->vme->vaddr, false); //printf("%d ", pagedir_is_accessed(f->thread->pagedir, f->vme->vaddr));}
 		else {
 			//frame_clock_head = f;
       //lock_release(&frame_lock);
@@ -112,7 +114,7 @@ void frame_evict(enum palloc_flags flags)
   struct list_elem * e = next_frame();
   //printf("next_frame FINISH\n");
   if (e == NULL) {
-    printf("next_frame is NULL\n");
+    //printf("next_frame is NULL\n");
     lock_release(&frame_lock);
     return;
   }
@@ -140,6 +142,7 @@ void frame_evict(enum palloc_flags flags)
   //pagedir_clear_page(f->thread->pagedir, f->vme->vaddr);
   palloc_free_page(f->faddr);
   list_remove(&(f->elem));
+  //이거 왜 두번?
   free(f);
   f->vme->is_loaded = false;
   lock_release(&frame_lock);

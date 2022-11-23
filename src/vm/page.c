@@ -51,7 +51,7 @@ void vm_destroy_func (struct hash_elem * v, void*aux UNUSED) {
   {
     if(vme->is_loaded) {
         //maybe we should deallcate frame here......
-        pagedir_clear_page(thread_current()->pagedir, vme->vaddr);
+        pagedir_clear_page(thread_current()->pagedir,vme->vaddr);
         frame_dealloc(pagedir_get_page(thread_current()->pagedir, vme->vaddr));
     }
     free(vme);
