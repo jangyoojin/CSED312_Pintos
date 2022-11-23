@@ -121,7 +121,7 @@ start_process (void *file_name_)
   cur->is_load=true;
   sema_up (&(cur->sema_load));
   argument_stack(argv,argc,&if_.esp);
-
+  
   
   palloc_free_page(argv);
   palloc_free_page(file_name_copy);
@@ -171,7 +171,7 @@ process_exit (void)
   struct thread *cur = thread_current ();
   uint32_t *pd;
   int i;
-
+  
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
 
@@ -654,14 +654,12 @@ void process_file_close(int fd) {
 }
 
 bool handle_mm_fault(struct vm_entry * vme)
-{  
-  printf("handle_mm_fault\n");
-  if (vme == NULL) exit(72);
+{ 
+  if (vme == NULL) exit(-1);
   struct frame *kaddr= frame_alloc(PAL_USER);
+  kaddr->vme=vme;
   if(kaddr==NULL) return false;
   bool success, loaded;
-  
-  kaddr->vme=vme;
 
   switch (vme->type)
   {
@@ -682,20 +680,15 @@ bool handle_mm_fault(struct vm_entry * vme)
   if(success) {
     
     loaded = install_page(vme->vaddr, kaddr->faddr, vme->writable);
-    if(loaded) {
-      vme->is_loaded = true;
-    }
-    else {
-      vme->is_loaded = false;
-      frame_dealloc(kaddr->faddr);
-      return false;
-    } 
-    //printf("handle_mm_fault\n");x
+    vme->is_loaded = loaded ? true : false;
+    if(!loaded) return false;   
   }
   else {
-    pagedir_clear_page(thread_current()->pagedir,vme->vaddr);
+    //pagedir_clear_page(thread_current()->pagedir,vme->vaddr);
     frame_dealloc(kaddr->faddr);
   }
+
+
   
   return success;
 }

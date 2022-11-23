@@ -6,6 +6,7 @@
 #include "threads/thread.h"
 #include "vm/page.h"
 #include "userprog/process.h"
+#include "userprog/syscall.h"
 
 /* Number of page faults processed. */
 static long long page_fault_cnt;
@@ -124,7 +125,7 @@ kill (struct intr_frame *f)
 static void
 page_fault (struct intr_frame *f) 
 {
-  printf("page_fault\n");
+   //printf("hello\n");
   bool not_present;  /* True: not-present page, false: writing r/o page. */
   bool write;        /* True: access was write, false: access was read. */
   bool user;         /* True: access by user, false: access by kernel. */
@@ -151,23 +152,15 @@ page_fault (struct intr_frame *f)
   write = (f->error_code & PF_W) != 0;
   user = (f->error_code & PF_U) != 0;
   
+  check_user_addr(fault_addr);
   if(not_present==false)
   {
-     exit(-1);
+    exit(-1);
   }
 	
   struct vm_entry * vme = vm_find_vme(fault_addr);
-  if(!vme) printf("vme null : %x\n", fault_addr);
+  if(write && !(vme->writable)) exit(-1);
   bool success = handle_mm_fault(vme);
-
-  if(write && !(vme->writable))exit(-1);
-
-
   if(!success) exit(-1);
-
-
-
-
-   
 }
 

@@ -51,7 +51,7 @@ void vm_destroy_func (struct hash_elem * v, void*aux UNUSED) {
   {
     if(vme->is_loaded) {
         //maybe we should deallcate frame here......
-        pagedir_clear_page(thread_current()->pagedir, vme->vaddr);
+        pagedir_clear_page(thread_current()->pagedir,vme->vaddr);
         frame_dealloc(pagedir_get_page(thread_current()->pagedir, vme->vaddr));
     }
     free(vme);
@@ -90,17 +90,18 @@ bool swap_in(size_t used_index, void* kaddr)
 {
 	lock_acquire(&swap_lock);
 	int i;
-    int sector_num = BLOCK_SECTOR_SIZE / PGSIZE;
+    int sector_num = PGSIZE / BLOCK_SECTOR_SIZE;
 	int target_sector = used_index * sector_num;
 
     if (bitmap_test(swap_bitmap, used_index) == 0) {
         lock_release(&swap_lock);
         return false;
     }
-
+    //lock_acquire(&filesys_lock);
 	for (i = 0; i < sector_num; i++) {
 		block_read(swap_block, target_sector+i, kaddr+i*BLOCK_SECTOR_SIZE);
 	}
+    //lock_release(&filesys_lock);
     bitmap_flip(swap_bitmap, used_index);
 	lock_release(&swap_lock);
     return true;
@@ -116,9 +117,9 @@ size_t swap_out(void* kaddr) {
         return BITMAP_ERROR;
     }
 
-    int sector_num = BLOCK_SECTOR_SIZE / PGSIZE;
+    int sector_num = PGSIZE/BLOCK_SECTOR_SIZE;
     for (i = 0; i < sector_num; i++) {
-        block_write(swap_block, swap_slot * i, kaddr + i * BLOCK_SECTOR_SIZE);
+        block_write(swap_block, swap_slot * (PGSIZE / BLOCK_SECTOR_SIZE)+i, kaddr + i * BLOCK_SECTOR_SIZE);
     }
     lock_release(&swap_lock);
     return swap_slot;    
