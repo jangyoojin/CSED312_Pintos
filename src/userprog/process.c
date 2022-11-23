@@ -121,7 +121,7 @@ start_process (void *file_name_)
   cur->is_load=true;
   sema_up (&(cur->sema_load));
   argument_stack(argv,argc,&if_.esp);
-
+  
   
   palloc_free_page(argv);
   palloc_free_page(file_name_copy);
@@ -171,7 +171,7 @@ process_exit (void)
   struct thread *cur = thread_current ();
   uint32_t *pd;
   int i;
-
+  
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
 

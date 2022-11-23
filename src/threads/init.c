@@ -129,7 +129,6 @@ main (void)
   filesys_init (format_filesys);
 #endif
 
-  
   frame_table_init();
   swap_init();
   printf ("Boot complete.\n");

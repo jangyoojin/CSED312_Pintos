@@ -153,20 +153,12 @@ page_fault (struct intr_frame *f)
   
   if(not_present==false)
   {
-     exit(-1);
+    exit(-1);
   }
 	
   struct vm_entry * vme = vm_find_vme(fault_addr);
+  if(write && !(vme->writable)) exit(-1);
   bool success = handle_mm_fault(vme);
-
-  if(write && !(vme->writable))exit(-1);
-
-
   if(!success) exit(-1);
-
-
-
-
-   
 }
 

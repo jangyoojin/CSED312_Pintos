@@ -374,11 +374,11 @@ return mapfile->mapid;
 
 void munmap(int mapping)
 {
-struct list_elem * e;
-struct mmap_file * temp;
+  struct list_elem * e;
+  struct mmap_file * temp;
 
-for (e=list_begin(&(thread_current()->mmap_list)); e!= list_end(&thread_current()->mmap_list);)
-{
+  for (e=list_begin(&(thread_current()->mmap_list)); e!= list_end(&thread_current()->mmap_list);)
+  {
     temp = list_entry (e, struct mmap_file, elem);
     if (mapping==CLOSE_ALL) 
     {     
@@ -393,7 +393,7 @@ for (e=list_begin(&(thread_current()->mmap_list)); e!= list_end(&thread_current(
       free(temp);
       break;
     }
-}
+  }
 
 }
 

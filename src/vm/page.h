@@ -65,7 +65,7 @@ static struct block *swap_block;
 static struct lock swap_lock;
 
 void swap_init();
-void swap_in(size_t used_index, void* kaddr);
+bool swap_in(size_t used_index, void* kaddr);
 size_t swap_out(void* kaddr);
 
 #endif
