@@ -523,25 +523,27 @@ setup_stack (void **esp)
   bool success = false;
 
   kpage = frame_alloc(PAL_USER | PAL_ZERO);
+  //if(kpage->faddr == 0xc03b2000) printf("success frame_alloc in setup_stack %x \n", kpage->faddr);
   if (kpage != NULL) 
-    {
-      success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage->faddr, true);
-      if (success)
-        *esp = PHYS_BASE;
-
-      else
-        frame_dealloc(kpage->faddr);
+  {
+    success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage->faddr, true);
+    if (success)
+      *esp = PHYS_BASE;
+    else {
+      //if(kpage->faddr == 0xc03b2000) printf("fail install_page at 0xc03b2000)");
+      frame_dealloc(kpage->faddr);
     }
+  }
 
   void * vaddr= ((uint8_t *) PHYS_BASE) - PGSIZE;
 
-  struct vm_entry * vme=malloc(sizeof(struct vm_entry));
-  kpage->vme=vme;
+  struct vm_entry * vme = malloc(sizeof(struct vm_entry));
   if(vme==NULL) return false;
   vme-> type= VM_ANON;
   vme-> vaddr= pg_round_down(vaddr);
   vme-> writable=true;
   vme-> is_loaded=true;//lazy loading
+  kpage->vme = vme;
   vm_insert_vme(&thread_current()->vm, vme);
 
   return success;
@@ -657,6 +659,7 @@ bool handle_mm_fault(struct vm_entry * vme)
 { 
   if (vme == NULL) exit(-1);
   struct frame *kaddr= frame_alloc(PAL_USER);
+  //if(kaddr->faddr == 0xc03b2000) printf("success frame_alloc %x \n", kaddr->faddr);
   kaddr->vme=vme;
   if(kaddr==NULL) return false;
   bool success, loaded;
@@ -671,7 +674,6 @@ bool handle_mm_fault(struct vm_entry * vme)
       break;
     case VM_ANON:
       success = swap_in(vme->swap_slot, kaddr->faddr);
-
       break;
     default:
       return false;

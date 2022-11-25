@@ -157,9 +157,9 @@ page_fault (struct intr_frame *f)
   {
     exit(-1);
   }
-	
   struct vm_entry * vme = vm_find_vme(fault_addr);
-  if(write && !(vme->writable)) exit(-1);
+	if(write && !(vme->writable)) exit(-1);
+	//if(fault_addr == 0xc03b2000) printf("page fault !!!!!!!!! %x\n",fault_addr);
   bool success = handle_mm_fault(vme);
   if(!success) exit(-1);
 }

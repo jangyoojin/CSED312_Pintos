@@ -13,6 +13,7 @@
 
 #define STACK_END 0x8048000
 #define STACK_BASE 0xc0000000
+#define MAX_STACK_SIZE (1 << 23)
 
 static void syscall_handler(struct intr_frame *);
 
@@ -194,7 +195,6 @@ int read(int fd, void *buffer, unsigned size)
   }
   else
   {
-    
     struct file *file = process_file_get(fd);
     if (file == NULL)
     {
@@ -210,7 +210,7 @@ int read(int fd, void *buffer, unsigned size)
 
 int write(int fd, void *buffer, unsigned size)
 {
-  check_valid_buffer(buffer,size,false);
+  check_valid_buffer(buffer, size, false);
   int write_byte;
 
   if (fd == 1)
@@ -276,8 +276,9 @@ struct vm_entry * check_user_addr(void *addr)
 void check_valid_buffer (void * buffer, unsigned size, bool to_write)
 {
   check_user_addr(buffer);
+  check_user_addr(buffer+size);
   unsigned int i=0;
-  for (i;i<=size;i++)
+  for (i = 0; i <= size; i++)
   { 
     struct vm_entry * vme=check_user_addr(buffer+i);
     if(to_write && vme->writable==false)  
@@ -311,7 +312,8 @@ void get_arg(int *esp, int *argv, int argc)
 }
 
 int mmap(int fd, void * addr)
-{ 
+{
+
   int size = filesize(fd);
   struct file * file = file_reopen(process_file_get(fd));
   if (size==0||file==NULL ||fd<2) {
@@ -320,7 +322,8 @@ int mmap(int fd, void * addr)
   {
     return -1;
   }
-  if(addr < STACK_END || addr >= STACK_BASE) exit(-1);
+  if(addr < STACK_END || addr >= STACK_BASE)
+  exit(-1);
   
   void * temp;
   for(temp=addr;temp<addr+size;temp+=PGSIZE)
@@ -399,10 +402,12 @@ void munmap(int mapping)
 
 void do_munmap(struct mmap_file * mmap_file)
 {
+  //printf("hello");
   struct list_elem * e;
   for (e=list_begin(&(mmap_file->vme_list)); e!= list_end(&mmap_file->vme_list);)
   {
     struct vm_entry * vme = list_entry (e, struct vm_entry, mmap_elem);
+    //if(pagedir_get_page(thread_current()->pagedir, vme->vaddr) == 0xc03b2000) printf("do_munmap 0xc03b2000: %d", vme->is_loaded);
     if (vme->is_loaded)
     {
       if (pagedir_is_dirty(thread_current()->pagedir, vme->vaddr)){
@@ -412,6 +417,7 @@ void do_munmap(struct mmap_file * mmap_file)
 
       }
       pagedir_clear_page(thread_current()->pagedir,vme->vaddr);
+      //if(pagedir_get_page(thread_current()->pagedir, vme->vaddr) == 0xc03b2000) printf("munmap in do_munmap about 0xc03b2000");
       frame_dealloc(pagedir_get_page(thread_current()->pagedir,vme->vaddr));
     }       
     e = list_remove(e);//mmpfile의 vme_list 에서 삭제
@@ -424,3 +430,34 @@ void do_munmap(struct mmap_file * mmap_file)
 
 }
 
+
+// /*-----------------Stack growth--------------------*/
+// bool expand_stack(void *addr) {
+//   if(addr >= (PHYS_BASE - MAX_STACK_SIZE))
+//   {
+//     struct frame *f = frame_alloc(PAL_USER);
+//     if(f == NULL) return false;
+
+//     struct vm_entry * v = malloc(sizeof(struct vm_entry));
+//     v->type = VM_ANON;
+//     v->vaddr = pg_round_down(addr);
+//     v->writable = true;
+//     v->is_loaded = true;
+//     v->is_stack = true;
+//     f->vme = v;
+
+//     if(!install_page(v->vaddr, f->faddr, v->writable)) {
+//       frame_dealloc(f);
+//       free(v);
+//       return false;
+//     }
+//     else if(!vm_insert_vme(&thread_current()->vm, v)) {
+//       frame_dealloc(f);
+//       free(v);
+//       return false;
+//     }
+  
+//     return true;
+//   }
+//   else return false;
+// }

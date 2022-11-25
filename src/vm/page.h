@@ -13,6 +13,7 @@
 #include "devices/block.h"
 #include "lib/kernel/bitmap.h"
 #include "vm/frame.h"
+#include "userprog/syscall.h"
 
 #define VM_BIN 0
 #define VM_FILE 1
@@ -48,6 +49,7 @@ struct mmap_file{
 };
 
 extern struct lock filesys_lock;
+struct lock file_lock;
 
 void vm_init (struct hash *vm);
 static unsigned vm_hash_func (const struct hash_elem *e, void *aux);

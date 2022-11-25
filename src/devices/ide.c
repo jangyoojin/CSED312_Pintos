@@ -363,9 +363,10 @@ ide_read (void *d_, block_sector_t sec_no, void *buffer)
    per-disk locking is unneeded. */
 static void
 ide_write (void *d_, block_sector_t sec_no, const void *buffer)
-{
+{  
   struct ata_disk *d = d_;
   struct channel *c = d->channel;
+  if(lock_held_by_current_thread(&c->lock)) printf("ide_read : %x\n", buffer);
   lock_acquire (&c->lock);
   select_sector (d, sec_no);
   issue_pio_command (c, CMD_WRITE_SECTOR_RETRY);
