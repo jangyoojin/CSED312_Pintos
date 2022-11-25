@@ -19,11 +19,9 @@ struct frame * frame_alloc(enum palloc_flags flags)
   
 	//free physical memory가 없으면 evict하고 할당
   while(faddr==NULL) {
-    //printf("frame_alloc: faddr is NULL\n");
 		frame_evict(flags);
 		faddr = palloc_get_page(flags);
   }
-  //printf("frame_alloc \n");
 	//위에서 할당받은 physical memory에 대한 정보를 담는 frame 선언
   struct frame * f = malloc(sizeof(struct frame));
   if(f==NULL) {
@@ -42,7 +40,6 @@ struct frame * frame_alloc(enum palloc_flags flags)
 	lock_acquire(&frame_lock);
   list_push_back(&frame_table, &(f->elem));
   lock_release(&frame_lock);
-  //if(f->faddr == 0xc03b2000) printf("frame_allocate is done in frame_alloc!\n");
   return f;
 
 }
@@ -59,7 +56,6 @@ void frame_dealloc(void * faddr)
     if(f->faddr==faddr) 
     {
       //pagedir_clear_page(f->thread->pagedir, f->vme->vaddr);
-      //if(f->faddr == 0xc03b2000) printf("frame_dealloc : %x\n", f->faddr);
       palloc_free_page(f->faddr);
       lock_acquire(&frame_lock);
       list_remove(&(f->elem));
@@ -122,7 +118,6 @@ void  frame_evict(enum palloc_flags flags)
     case VM_BIN:
       if(pagedir_is_dirty(f->thread->pagedir, f->vme->vaddr)) {
         f->vme->type = VM_ANON;
-        //if(f->faddr == 0xc03b2000) printf("frame_evict in VM_BIN case\n");
         f->vme->swap_slot = swap_out(f->faddr);
       }
       break;
@@ -139,7 +134,6 @@ void  frame_evict(enum palloc_flags flags)
   }
   frame_clock_head= list_remove(e);
   pagedir_clear_page(f->thread->pagedir, f->vme->vaddr);
-  //if(f->faddr == 0xc03b2000) printf("frame evict : %x\n",f->faddr);
   palloc_free_page(f->faddr);
   list_remove(&(f->elem));
   f->vme->is_loaded = false;

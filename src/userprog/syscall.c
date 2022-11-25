@@ -289,10 +289,8 @@ void check_valid_buffer (void * buffer, unsigned size, bool to_write)
 void check_valid_string(const void * str)
 {
   unsigned int i=0;
-  //printf("strlen: %s\n", (char*)str);
   while(1)
   {
-    //printf("%d   ::    ", str+i);
     check_user_addr(str+i);
     if(*(char *)(str+i)=='\0') break;
     i++;
@@ -402,12 +400,10 @@ void munmap(int mapping)
 
 void do_munmap(struct mmap_file * mmap_file)
 {
-  //printf("hello");
   struct list_elem * e;
   for (e=list_begin(&(mmap_file->vme_list)); e!= list_end(&mmap_file->vme_list);)
   {
     struct vm_entry * vme = list_entry (e, struct vm_entry, mmap_elem);
-    //if(pagedir_get_page(thread_current()->pagedir, vme->vaddr) == 0xc03b2000) printf("do_munmap 0xc03b2000: %d", vme->is_loaded);
     if (vme->is_loaded)
     {
       if (pagedir_is_dirty(thread_current()->pagedir, vme->vaddr)){
@@ -417,7 +413,6 @@ void do_munmap(struct mmap_file * mmap_file)
 
       }
       pagedir_clear_page(thread_current()->pagedir,vme->vaddr);
-      //if(pagedir_get_page(thread_current()->pagedir, vme->vaddr) == 0xc03b2000) printf("munmap in do_munmap about 0xc03b2000");
       frame_dealloc(pagedir_get_page(thread_current()->pagedir,vme->vaddr));
     }       
     e = list_remove(e);//mmpfile의 vme_list 에서 삭제

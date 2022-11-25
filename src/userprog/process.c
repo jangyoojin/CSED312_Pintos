@@ -523,14 +523,12 @@ setup_stack (void **esp)
   bool success = false;
 
   kpage = frame_alloc(PAL_USER | PAL_ZERO);
-  //if(kpage->faddr == 0xc03b2000) printf("success frame_alloc in setup_stack %x \n", kpage->faddr);
   if (kpage != NULL) 
   {
     success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage->faddr, true);
     if (success)
       *esp = PHYS_BASE;
     else {
-      //if(kpage->faddr == 0xc03b2000) printf("fail install_page at 0xc03b2000)");
       frame_dealloc(kpage->faddr);
     }
   }
@@ -659,7 +657,6 @@ bool handle_mm_fault(struct vm_entry * vme)
 { 
   if (vme == NULL) exit(-1);
   struct frame *kaddr= frame_alloc(PAL_USER);
-  //if(kaddr->faddr == 0xc03b2000) printf("success frame_alloc %x \n", kaddr->faddr);
   kaddr->vme=vme;
   if(kaddr==NULL) return false;
   bool success, loaded;
