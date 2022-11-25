@@ -129,7 +129,7 @@ void  frame_evict(enum palloc_flags flags)
         lock_release(&filesys_lock);
       }
       break;
-    case VM_ANON:
+    case VM_ANON: 
       f->vme->swap_slot = swap_out(f->faddr);
       break;
   }

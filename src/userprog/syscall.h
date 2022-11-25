@@ -13,22 +13,22 @@ struct lock filesys_lock;
 
 
 void syscall_init (void);
-struct vm_entry * check_user_addr(void *addr,void * fesp);
+struct vm_entry * check_user_addr(void *addr);
 
-void check_valid_buffer(void * buffer, unsigned size, bool to_write,void *fesp);
-void check_valid_string(const void * str, void * fesp);
+void check_valid_buffer(void * buffer, unsigned size, bool to_write);
+void check_valid_string(const void * str);
 
-void get_arg(int * esp,int *argv, int argc, void * fesp);
+void get_arg(int * esp,int *argv, int argc);
 void halt();
 void exit(int status);
-bool create_file(const char *file, unsigned initial_size,void * fesp);
-bool remove_file(const char *file,void * fesp);
-pid_t exec(const char * cmdline,void * fesp);
+bool create_file(const char *file, unsigned initial_size);
+bool remove_file(const char *file);
+pid_t exec(const char * cmdline);
 int wait(pid_t tid);
-int open(const char *file,void * fesp);
+int open(const char *file);
 int filesize(int fd);
-int read (int fd, void *buffer, unsigned size,void * fesp);
-int write(int fd, void *buffer, unsigned size,void * fesp);
+int read (int fd, void *buffer, unsigned size);
+int write(int fd, void *buffer, unsigned size);
 void seek (int fd, unsigned position);
 unsigned tell (int fd);
 void close (int fd);
