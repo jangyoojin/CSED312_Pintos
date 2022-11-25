@@ -28,7 +28,7 @@ syscall_handler(struct intr_frame *f UNUSED)
 {
   int argv[3];
   uint32_t *sp = f->esp;
-  check_user_addr((void *)sp);
+  check_user_addr((void *)sp,f->esp);
   int syscall_number = *sp;
 
 
@@ -38,60 +38,60 @@ syscall_handler(struct intr_frame *f UNUSED)
     halt();
     break;
   case SYS_EXIT:
-    get_arg(sp, argv, 1);
+    get_arg(sp, argv, 1,f->esp);
     exit(argv[0]);
     break;
   case SYS_EXEC:
-    get_arg(sp, argv, 1);
-    f->eax = exec((const char *)argv[0]);
+    get_arg(sp, argv, 1,f->esp);
+    f->eax = exec((const char *)argv[0],f->esp);
     break;
   case SYS_WAIT:
-    get_arg(sp, argv, 1);
+    get_arg(sp, argv, 1,f->esp);
     f->eax = wait((pid_t)argv[0]);
     break;
   case SYS_CREATE:
-    get_arg(sp, argv, 2);
-    f->eax = create_file(argv[0], argv[1]);
+    get_arg(sp, argv, 2,f->esp);
+    f->eax = create_file(argv[0], argv[1],f->esp);
     break;
   case SYS_REMOVE:
-    get_arg(sp, argv, 1);
-    f->eax = remove_file(argv[0]);
+    get_arg(sp, argv, 1,f->esp);
+    f->eax = remove_file(argv[0],f->esp);
     break;
   case SYS_OPEN:
-    get_arg(sp, argv, 1);
-    f->eax = open(argv[0]);
+    get_arg(sp, argv, 1,f->esp);
+    f->eax = open(argv[0],f->esp);
     break;
   case SYS_FILESIZE:
-    get_arg(sp, argv, 1);
+    get_arg(sp, argv, 1,f->esp);
     f->eax = filesize(argv[0]);
     break;
   case SYS_READ:
-    get_arg(sp, argv, 3);
-    f->eax = read(argv[0], argv[1], argv[2]);
+    get_arg(sp, argv, 3,f->esp);
+    f->eax = read(argv[0], argv[1], argv[2],f->esp);
     break;
   case SYS_WRITE:
-    get_arg(sp, argv, 3);
-    f->eax = write(argv[0], argv[1], argv[2]);
+    get_arg(sp, argv, 3,f->esp);
+    f->eax = write(argv[0], argv[1], argv[2],f->esp);
     break;
   case SYS_SEEK:
-    get_arg(sp, argv, 2);
+    get_arg(sp, argv, 2,f->esp);
     seek(argv[0], argv[1]);
     break;
   case SYS_TELL:
-    get_arg(sp, argv, 1);
+    get_arg(sp, argv, 1,f->esp);
     f->eax = tell(argv[0]);
     break;
   case SYS_CLOSE:
-    get_arg(sp, argv, 1);
+    get_arg(sp, argv, 1,f->esp);
     close(argv[0]);
     break;
   case SYS_MMAP:
-    get_arg(sp,argv,2);
+    get_arg(sp,argv,2,f->esp);
     f->eax=mmap(argv[0],argv[1]);
     break;
 
   case SYS_MUNMAP:
-    get_arg(sp,argv,1);
+    get_arg(sp,argv,1,f->esp);
     munmap(argv[0]);
     break;
 
@@ -111,23 +111,23 @@ void exit(int status)
   thread_exit();
 }
 
-bool create_file(const char *file, unsigned initial_size)
+bool create_file(const char *file, unsigned initial_size, void * fesp)
 {
   //check_user_addr(file);
-  check_valid_string(file);
+  check_valid_string(file,fesp);
   return filesys_create(file, initial_size);
 }
 
-bool remove_file(const char *file)
+bool remove_file(const char *file, void * fesp)
 {
   //check_user_addr(file);
-  check_valid_string(file);
+  check_valid_string(file,fesp);
   return filesys_remove(file);
 }
 
-pid_t exec(const char *cmdline)
+pid_t exec(const char *cmdline,void * fesp)
 {
-  check_valid_string(cmdline);
+  check_valid_string(cmdline,fesp);
   struct thread *child;
   pid_t pid = process_execute(cmdline);
   if (pid == -1)
@@ -146,10 +146,10 @@ int wait(pid_t pid)
   return process_wait(pid);
 }
 
-int open(const char *file)
+int open(const char *file,void * fesp)
 {
   struct file *f;
-  check_valid_string(file);
+  check_valid_string(file,fesp);
   if (file == NULL)
     exit(-1);
   int fd_cnt = thread_current()->fd_max;
@@ -176,9 +176,9 @@ int filesize(int fd)
   return file_length(file);
 }
 
-int read(int fd, void *buffer, unsigned size)
+int read(int fd, void *buffer, unsigned size, void * fesp)
 {
-  check_valid_buffer(buffer, size, true);
+  check_valid_buffer(buffer, size, true,fesp);
   int read_byte;
   int i;
 
@@ -208,9 +208,9 @@ int read(int fd, void *buffer, unsigned size)
   return read_byte;
 }
 
-int write(int fd, void *buffer, unsigned size)
+int write(int fd, void *buffer, unsigned size,void * fesp)
 {
-  check_valid_buffer(buffer, size, false);
+  check_valid_buffer(buffer, size, false,fesp);
   int write_byte;
 
   if (fd == 1)
@@ -259,54 +259,65 @@ void close(int fd)
 }
 
 
-struct vm_entry * check_user_addr(void *addr)
+struct vm_entry * check_user_addr(void *addr, void * fesp)
 {
   if (addr < STACK_END || addr >= STACK_BASE)
-    exit(-1);
+   { 
+exit(-1);}
 
   struct vm_entry * vme=vm_find_vme(addr);
 
   
   if(vme==NULL) 
     {
-      if(vm)
       
-      exit(-1);}
+      if(addr >= (fesp - 32))
+      {
+      if(!expand_stack(addr)){
+        //printf("hello\n");
+        exit(-1);}
+      }
+      else {
+        //printf("hello\n");
+        exit(-1);}
+      
+    }
 
   return vme;
   
 }
-void check_valid_buffer (void * buffer, unsigned size, bool to_write)
+void check_valid_buffer (void * buffer, unsigned size, bool to_write, void * fesp)
 {
-  check_user_addr(buffer);
-  check_user_addr(buffer+size);
+  check_user_addr(buffer,fesp);
+  check_user_addr(buffer+size,fesp);
   unsigned int i=0;
   for (i = 0; i <= size; i++)
   { 
-    struct vm_entry * vme=check_user_addr(buffer+i);
+    struct vm_entry * vme=check_user_addr(buffer+i,fesp);
     if(to_write && vme->writable==false)  
-      exit(-1);
+      {exit(-1);}
   }
 }
 
-void check_valid_string(const void * str)
+void check_valid_string(const void * str, void * fesp)
 {
   unsigned int i=0;
   while(1)
   {
-    check_user_addr(str+i);
+    check_user_addr(str+i,fesp);
+
     if(*(char *)(str+i)=='\0') break;
     i++;
   }
   return;
 }
 
-void get_arg(int *esp, int *argv, int argc)
+void get_arg(int *esp, int *argv, int argc,void * fesp)
 {
   int i;
   for (i = 0; i < argc; i++)
   {
-    check_user_addr(esp + 1);
+    check_user_addr(esp + 1,fesp);
     esp += 1;
     argv[i] = *esp;
   }
@@ -355,6 +366,7 @@ int mmap(int fd, void * addr)
     vme->offset= offset;
     vme-> writable= true;
     vme-> is_loaded = false;
+   
     if (size<PGSIZE) vme->read_bytes= size;
     else vme->read_bytes=PGSIZE;
 

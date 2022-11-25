@@ -707,14 +707,14 @@ bool expand_stack(void *addr) {
       //pagedir_clear_page(thread_current()->pagedir,f->vme->vaddr);
       return false;
     }
-
+    
     /*while(1)
     {
       if(vm_find_vme(addr))break;
       f= frame_alloc(PAL_USER|PAL_ZERO);
       if(!f) return false;
     }
-*/
+    */
     struct vm_entry * v = malloc(sizeof(struct vm_entry));
     if(v==NULL) return false;
     v->type = VM_ANON;
@@ -734,7 +734,7 @@ bool expand_stack(void *addr) {
        free(v);
        return false;
      }
-  
+
     return true;
    }
    else return false;

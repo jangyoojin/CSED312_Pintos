@@ -151,16 +151,16 @@ page_fault (struct intr_frame *f)
   not_present = (f->error_code & PF_P) == 0;
   write = (f->error_code & PF_W) != 0;
   user = (f->error_code & PF_U) != 0;
-  
+
    if (fault_addr < STACK_END || fault_addr >= STACK_BASE)
     exit(-1);
 
-  struct vm_entry * vme = vm_find_vme(fault_addr);
+   struct vm_entry * vme = vm_find_vme(fault_addr);
    if(vme){
       if(write && !(vme->writable)) exit(-1);
       bool success = handle_mm_fault(vme);
       if(!success) exit(-1);
-   }
+      }
    else{
       if(fault_addr >= f->esp - 32)
       {if(!expand_stack(fault_addr))
