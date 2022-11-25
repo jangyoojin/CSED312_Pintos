@@ -265,9 +265,12 @@ struct vm_entry * check_user_addr(void *addr)
     exit(-1);
 
   struct vm_entry * vme=vm_find_vme(addr);
+
   
   if(vme==NULL) 
     {
+      if(vm)
+      
       exit(-1);}
 
   return vme;
@@ -412,8 +415,9 @@ void do_munmap(struct mmap_file * mmap_file)
       lock_release(&filesys_lock);
 
       }
-      pagedir_clear_page(thread_current()->pagedir,vme->vaddr);
+      
       frame_dealloc(pagedir_get_page(thread_current()->pagedir,vme->vaddr));
+      pagedir_clear_page(thread_current()->pagedir,vme->vaddr);
     }       
     e = list_remove(e);//mmpfile의 vme_list 에서 삭제
 

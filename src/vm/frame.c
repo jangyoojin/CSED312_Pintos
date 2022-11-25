@@ -133,6 +133,7 @@ void  frame_evict(enum palloc_flags flags)
       break;
   }
   frame_clock_head= list_remove(e);
+  
   pagedir_clear_page(f->thread->pagedir, f->vme->vaddr);
   palloc_free_page(f->faddr);
   list_remove(&(f->elem));
