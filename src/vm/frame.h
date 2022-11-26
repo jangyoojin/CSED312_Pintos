@@ -5,6 +5,7 @@
 #include "page.h"
 #include "threads/synch.h"
 #include "threads/palloc.h"
+#include "userprog/process.h"
 #include <list.h>
 
 
