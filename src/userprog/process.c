@@ -696,3 +696,35 @@ bool handle_mm_fault(struct vm_entry * vme)
   
   return success;
 }
+
+/*-----------------Stack growth--------------------*/
+bool expand_stack(void *addr) {
+  if(addr >= (PHYS_BASE - STACK_MAX_SIZE))
+   {
+    struct frame * f;
+   for(;vm_find_vme(addr)==NULL;addr+=PGSIZE)
+   {
+    f=frame_alloc(PAL_USER|PAL_ZERO);
+    if(!f) {return false;}
+    
+     if(!install_page(pg_round_down(addr), f->faddr, 1)) {
+       frame_dealloc(f);
+       return false;
+     }
+    struct vm_entry * v = malloc(sizeof(struct vm_entry));
+    if(v==NULL) return false;
+    v->type = VM_ANON;
+    v->vaddr = pg_round_down(addr);
+    v->writable = true;
+    v->is_loaded = true;
+    f->vme = v;
+    if(!vm_insert_vme(&thread_current()->vm, v))
+    {
+    frame_dealloc(f);
+    };
+
+   }
+    return true;
+   }
+   return false;
+}
