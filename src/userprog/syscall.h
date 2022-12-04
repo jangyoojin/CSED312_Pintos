@@ -5,6 +5,8 @@
 #include <stdbool.h>
 #include "vm/page.h"
 #include "vm/frame.h"
+#define STACK_END 0x8048000
+#define STACK_BASE 0xc0000000
 typedef int pid_t;
 struct lock filesys_lock;
 

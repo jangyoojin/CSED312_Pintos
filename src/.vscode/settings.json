@@ -9,6 +9,7 @@
         "process.h": "c",
         "filesys.h": "c",
         "file.h": "c",
-        "frame.h": "c"
+        "frame.h": "c",
+        "*.inc": "c"
     }
 }

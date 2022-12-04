@@ -262,13 +262,20 @@ void close(int fd)
 struct vm_entry * check_user_addr(void *addr)
 {
   if (addr < STACK_END || addr >= STACK_BASE)
-    exit(-1);
+   { 
+  exit(-1);
+  
+  }
 
   struct vm_entry * vme=vm_find_vme(addr);
   
   if(vme==NULL) 
     {
-      exit(-1);}
+      
+      //printf("hello\n");
+        exit(-1);
+      
+    }
 
   return vme;
   
@@ -282,7 +289,7 @@ void check_valid_buffer (void * buffer, unsigned size, bool to_write)
   { 
     struct vm_entry * vme=check_user_addr(buffer+i);
     if(to_write && vme->writable==false)  
-      exit(-1);
+      {exit(-1);}
   }
 }
 
@@ -292,6 +299,7 @@ void check_valid_string(const void * str)
   while(1)
   {
     check_user_addr(str+i);
+
     if(*(char *)(str+i)=='\0') break;
     i++;
   }
@@ -352,6 +360,7 @@ int mmap(int fd, void * addr)
     vme->offset= offset;
     vme-> writable= true;
     vme-> is_loaded = false;
+   
     if (size<PGSIZE) vme->read_bytes= size;
     else vme->read_bytes=PGSIZE;
 
@@ -412,6 +421,7 @@ void do_munmap(struct mmap_file * mmap_file)
       lock_release(&filesys_lock);
 
       }
+      
       frame_dealloc(pagedir_get_page(thread_current()->pagedir,vme->vaddr));
       pagedir_clear_page(thread_current()->pagedir,vme->vaddr);
     }       

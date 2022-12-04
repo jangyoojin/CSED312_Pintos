@@ -40,6 +40,7 @@ struct frame * frame_alloc(enum palloc_flags flags)
 	lock_acquire(&frame_lock);
   list_push_back(&frame_table, &(f->elem));
   lock_release(&frame_lock);
+
   return f;
 
 }
@@ -47,7 +48,7 @@ struct frame * frame_alloc(enum palloc_flags flags)
 //faddr인 frame 할당 해제하기
 void frame_dealloc(void * faddr)
 {
-  
+ 
   struct list_elem * e;
   struct frame *f;
   for(e = list_begin(&frame_table); e != list_end(&frame_table); e = list_next(e))
@@ -106,7 +107,7 @@ static struct list_elem* next_frame() {
 void  frame_evict(enum palloc_flags flags)
 {
 
-  
+  //printf("hello\n");
   struct list_elem * e = next_frame();
   if (e == NULL) {
     return NULL;
@@ -128,11 +129,12 @@ void  frame_evict(enum palloc_flags flags)
         lock_release(&filesys_lock);
       }
       break;
-    case VM_ANON:
+    case VM_ANON: 
       f->vme->swap_slot = swap_out(f->faddr);
       break;
   }
   frame_clock_head= list_remove(e);
+  
   pagedir_clear_page(f->thread->pagedir, f->vme->vaddr);
   palloc_free_page(f->faddr);
   list_remove(&(f->elem));

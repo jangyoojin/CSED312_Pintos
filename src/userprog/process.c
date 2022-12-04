@@ -530,6 +530,7 @@ setup_stack (void **esp)
       *esp = PHYS_BASE;
     else {
       frame_dealloc(kpage->faddr);
+      //pagedir_clear_page(thread_current()->pagedir,kpage->vme->vaddr);
     }
   }
 
@@ -680,11 +681,15 @@ bool handle_mm_fault(struct vm_entry * vme)
     
     loaded = install_page(vme->vaddr, kaddr->faddr, vme->writable);
     vme->is_loaded = loaded ? true : false;
-    if(!loaded) return false;   
+    if(!loaded) {
+      frame_dealloc(kaddr->faddr);
+      pagedir_clear_page(thread_current()->pagedir,vme->vaddr);
+      return false;   }
   }
   else {
-    //pagedir_clear_page(thread_current()->pagedir,vme->vaddr);
+    
     frame_dealloc(kaddr->faddr);
+    pagedir_clear_page(thread_current()->pagedir,vme->vaddr);
   }
 
 
