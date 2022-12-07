@@ -167,16 +167,15 @@ page_fault (struct intr_frame *f)
    else{
       if(fault_addr >=f->esp - 32)
       {
-      if(!expand_stack(fault_addr))
-      { 
+         if(!expand_stack(fault_addr))
+         { 
+            exit(-1);
+         }
+         else return;
+      }
+      else {         
          exit(-1);
       }
-      else return;
-      }
-      else {
-         //printf("hello\n");
-         
-      exit(-1);}
    }
    
 }

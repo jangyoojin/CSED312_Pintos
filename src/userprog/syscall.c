@@ -434,35 +434,3 @@ void do_munmap(struct mmap_file * mmap_file)
   file_close(mmap_file->file);
 
 }
-
-
-// /*-----------------Stack growth--------------------*/
-// bool expand_stack(void *addr) {
-//   if(addr >= (PHYS_BASE - MAX_STACK_SIZE))
-//   {
-//     struct frame *f = frame_alloc(PAL_USER);
-//     if(f == NULL) return false;
-
-//     struct vm_entry * v = malloc(sizeof(struct vm_entry));
-//     v->type = VM_ANON;
-//     v->vaddr = pg_round_down(addr);
-//     v->writable = true;
-//     v->is_loaded = true;
-//     v->is_stack = true;
-//     f->vme = v;
-
-//     if(!install_page(v->vaddr, f->faddr, v->writable)) {
-//       frame_dealloc(f);
-//       free(v);
-//       return false;
-//     }
-//     else if(!vm_insert_vme(&thread_current()->vm, v)) {
-//       frame_dealloc(f);
-//       free(v);
-//       return false;
-//     }
-  
-//     return true;
-//   }
-//   else return false;
-// }
