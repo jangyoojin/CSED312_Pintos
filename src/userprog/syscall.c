@@ -263,24 +263,22 @@ struct vm_entry * check_user_addr(void *addr, void * fesp)
 {
   if (addr < STACK_END || addr >= STACK_BASE)
    { 
-exit(-1);}
+    exit(-1);}
 
-  struct vm_entry * vme=vm_find_vme(addr);
-
-  
+  struct vm_entry * vme=vm_find_vme(addr);  
   if(vme==NULL) 
     {
       
       if(addr >= (fesp - 32))
       {
       if(!expand_stack(addr)){
-       //printf("hello\n");
-        exit(-1);}
+        exit(-1);
+        }
+      else vme=vm_find_vme(addr);
       
       }
       
       else {
-        //printf("hello\n");
         exit(-1);}
       
     }

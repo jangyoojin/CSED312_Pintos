@@ -729,7 +729,7 @@ bool expand_stack(void *addr) {
        free(v);
        return false;
      }
-     else if(!vm_insert_vme(&thread_current()->vm, v)) {
+     if(!vm_insert_vme(&thread_current()->vm, v)) {
        frame_dealloc(f);
        free(v);
        return false;
