@@ -717,10 +717,20 @@ bool expand_stack(void *addr) {
     v->writable = true;
     v->is_loaded = true;
     f->vme = v;
-    if(!vm_insert_vme(&thread_current()->vm, v))
-     frame_dealloc(f);
+
+     if(!install_page(v->vaddr, f->faddr, v->writable)) {
+       frame_dealloc(f);
+       pagedir_clear_page(thread_current()->pagedir,v->vaddr);
+       free(v);
+       return false;
+     }
+     if(!vm_insert_vme(&thread_current()->vm, v)) {
+       frame_dealloc(f);
+       free(v);
+       return false;
+     }
+
+    return true;
    }
-   return true;
-  }
-  return false;
+   else return false;
 }
