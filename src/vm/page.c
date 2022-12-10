@@ -96,6 +96,7 @@ bool swap_in(size_t used_index, void* kaddr)
 
   if (bitmap_test(swap_bitmap, used_index) == 0) {
     lock_release(&swap_lock);
+    
     return false;
   }
   //lock_acquire(&filesys_lock);
